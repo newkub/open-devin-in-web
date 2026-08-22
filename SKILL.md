@@ -1,5 +1,5 @@
 ---
-name: visulize-devin-global-skills-in-web
+name: visualize-devin-global-skills-in-web
 description: สร้าง web graph ของ devin global skills แสดง relations พร้อม UX ดี
 allowed-tools:
   - read
