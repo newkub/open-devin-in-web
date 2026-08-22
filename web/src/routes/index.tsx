@@ -9,7 +9,7 @@ export function GraphPage() {
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
 
-  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("visualize-theme") : null;
+  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("openweb-theme") : null;
   const [dark, setDark] = createSignal(saved ? saved === "dark" : true);
   const [physics, setPhysics] = createSignal(true);
   const [showLabels, setShowLabels] = createSignal(true);
@@ -19,7 +19,7 @@ export function GraphPage() {
 
   createEffect(() => {
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("visualize-theme", dark() ? "dark" : "light");
+      localStorage.setItem("openweb-theme", dark() ? "dark" : "light");
     }
   });
 
