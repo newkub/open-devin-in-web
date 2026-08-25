@@ -1,15 +1,21 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Graph, groupColors, type GraphData, type GraphNode, type SelectedNode } from "../Graph";
+import { StatsPanel } from "../components/StatsPanel";
+import { LegendPanel } from "../components/LegendPanel";
+import { ShortcutsPanel } from "../components/ShortcutsPanel";
+import { DetailPanel } from "../components/DetailPanel";
+import { TopSkills } from "../components/TopSkills";
 
 export function GraphPage() {
   const [search, setSearch] = createSignal("");
   const [prefix, setPrefix] = createSignal("all");
+  const [typeFilter, setTypeFilter] = createSignal("all");
   const [selected, setSelected] = createSignal<SelectedNode | null>(null);
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
 
-  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("openweb-theme") : null;
+  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("visulize-devin-theme") : null;
   const [dark, setDark] = createSignal(saved ? saved === "dark" : true);
   const [physics, setPhysics] = createSignal(true);
   const [showLabels, setShowLabels] = createSignal(true);
@@ -19,7 +25,7 @@ export function GraphPage() {
 
   createEffect(() => {
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("openweb-theme", dark() ? "dark" : "light");
+      localStorage.setItem("visulize-devin-theme", dark() ? "dark" : "light");
     }
   });
 
@@ -47,7 +53,11 @@ export function GraphPage() {
       acc[n.group] = (acc[n.group] ?? 0) + 1;
       return acc;
     }, {});
-    return { isolated, groupCounts };
+    const typeCounts = data.nodes.reduce<Record<string, number>>((acc, n) => {
+      acc[n.type] = (acc[n.type] ?? 0) + 1;
+      return acc;
+    }, {});
+    return { isolated, groupCounts, typeCounts };
   });
 
   const topSkills = createMemo(() => {
@@ -66,9 +76,7 @@ export function GraphPage() {
 
   const related = (ids: string[]) => {
     if (!graphData()) return [] as GraphNode[];
-    return ids
-      .map((id) => graphData()!.nodes.find((n) => n.id === id))
-      .filter(Boolean) as GraphNode[];
+    return ids.map((id) => graphData()!.nodes.find((n) => n.id === id)).filter(Boolean) as GraphNode[];
   };
 
   const incoming = createMemo(() => {
@@ -83,23 +91,14 @@ export function GraphPage() {
     return related(ids);
   });
 
-  const doReset = () => {
-    setSelected(null);
-    setFocus(null);
-    setReset((v) => v + 1);
-  };
+  const doReset = () => { setSelected(null); setFocus(null); setReset((v) => v + 1); };
   const doFocus = () => { if (selected()) setFocus(selected()!.id); };
   const doRandom = () => {
     if (!graphData()) return;
     const n = graphData()!.nodes[Math.floor(Math.random() * graphData()!.nodes.length)];
-    const incoming = graphData()!.edges.filter((e) => e.to === n.id).length;
-    const outgoing = graphData()!.edges.filter((e) => e.from === n.id).length;
-    setSelected({ ...n, incoming, outgoing });
-    setFocus(n.id);
-  };
-
-  const selectNode = (n: SelectedNode) => {
-    setSelected(n);
+    const inc = graphData()!.edges.filter((e) => e.to === n.id).length;
+    const out = graphData()!.edges.filter((e) => e.from === n.id).length;
+    setSelected({ ...n, incoming: inc, outgoing: out });
     setFocus(n.id);
   };
 
@@ -108,9 +107,10 @@ export function GraphPage() {
     if (!data) return;
     const n = data.nodes.find((x) => x.id === id);
     if (!n) return;
-    const incoming = data.edges.filter((e) => e.to === id).length;
-    const outgoing = data.edges.filter((e) => e.from === id).length;
-    selectNode({ ...n, incoming, outgoing });
+    const inc = data.edges.filter((e) => e.to === id).length;
+    const out = data.edges.filter((e) => e.from === id).length;
+    setSelected({ ...n, incoming: inc, outgoing: out });
+    setFocus(id);
   };
 
   const openInVSCode = (dir: string) => {
@@ -137,7 +137,7 @@ export function GraphPage() {
   return (
     <div class="app" classList={{ light: !dark() }}>
       <aside class="sidebar">
-        <h1>Devin Skills</h1>
+        <h1>Visulize Devin</h1>
         <input
           id="skill-search"
           type="text"
@@ -153,6 +153,13 @@ export function GraphPage() {
             {(g) => <option value={g}>{g}</option>}
           </For>
         </select>
+        <select value={typeFilter()} onChange={(e) => setTypeFilter(e.currentTarget.value)} aria-label="Filter by type" title="Filter by resource type">
+          <option value="all">all types</option>
+          <option value="skill">skills</option>
+          <option value="subagent">subagents</option>
+          <option value="mcp">mcp servers</option>
+          <option value="rule">global rules</option>
+        </select>
         <div class="controls">
           <button title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>{dark() ? "light" : "dark"}</button>
           <button title="Toggle physics (P)" onClick={() => setPhysics((v) => !v)}>{physics() ? "stop physics" : "start physics"}</button>
@@ -164,130 +171,23 @@ export function GraphPage() {
           <button title="Zoom in" onClick={() => setZoom({ dir: "in" })}>+</button>
           <button title="Jump to a random skill" onClick={doRandom}>random</button>
         </div>
-        <Show when={selected()}>
-          <div class="detail">
-            <div class="detail-header">
-              <h3>{selected()!.id}</h3>
-              <span class="group-badge" style={{ "background-color": (groupColors[selected()!.group] || groupColors.default).background }}>{selected()!.group}</span>
-            </div>
-            <p class="desc">{selected()!.title}</p>
-            <p class="meta">{selected()!.incoming} incoming · {selected()!.outgoing} outgoing</p>
-            <div class="controls small">
-              <button onClick={doFocus}>focus</button>
-              <button onClick={() => setSelected(null)}>clear</button>
-              <button onClick={() => navigator.clipboard?.writeText?.(selected()!.id)}>copy</button>
-              <button onClick={() => openInVSCode(selected()!.dir)}>open</button>
-            </div>
-            <Show when={outgoing().length > 0}>
-              <div class="related-section">
-                <h5>uses</h5>
-                <ul class="related-list">
-                  <For each={outgoing()}>
-                    {(n) => (
-                      <li onClick={() => selectById(n.id)}>
-                        <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
-                        <span>{n.id}</span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </div>
-            </Show>
-            <Show when={incoming().length > 0}>
-              <div class="related-section">
-                <h5>used by</h5>
-                <ul class="related-list">
-                  <For each={incoming()}>
-                    {(n) => (
-                      <li onClick={() => selectById(n.id)}>
-                        <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
-                        <span>{n.id}</span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </div>
-            </Show>
-          </div>
-        </Show>
-        <div class="section">
-          <h4>top skills</h4>
-          <ul class="top-list">
-            <For each={topSkills()}>
-              {(item) => (
-                <li
-                  onClick={() => {
-                    const n = item.node;
-                    const incoming = graphData()!.edges.filter((e) => e.to === n.id).length;
-                    const outgoing = graphData()!.edges.filter((e) => e.from === n.id).length;
-                    selectNode({ ...n, incoming, outgoing });
-                  }}
-                >
-                  <span>{item.id}</span>
-                  <span class="count">{item.count}</span>
-                </li>
-              )}
-            </For>
-          </ul>
-        </div>
-        <Show when={stats()}>
-          <div class="section">
-            <h4>stats</h4>
-            <div class="stat-grid">
-              <div>
-                <div class="stat-value">{counts().nodes}</div>
-                <div class="stat-label">nodes</div>
-              </div>
-              <div>
-                <div class="stat-value">{counts().edges}</div>
-                <div class="stat-label">edges</div>
-              </div>
-              <div>
-                <div class="stat-value">{stats()!.isolated}</div>
-                <div class="stat-label">isolated</div>
-              </div>
-            </div>
-            <ul class="group-stats">
-              <For each={Object.entries(stats()!.groupCounts).sort((a, b) => b[1] - a[1])}>
-                {([g, count]) => (
-                  <li>
-                    <span class="related-dot" style={{ "background-color": (groupColors[g] || groupColors.default).background }} />
-                    <span>{g}</span>
-                    <span class="count">{count}</span>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </div>
-        </Show>
-        <div class="section">
-          <h4>legend</h4>
-          <ul class="legend">
-            <For each={groups()}>
-              {(group) => {
-                const c = groupColors[group] || groupColors.default;
-                return (
-                  <li>
-                    <span class="dot" style={{ "background-color": c.background, "border-color": c.border }} />
-                    <span class="cap">{group}</span>
-                  </li>
-                );
-              }}
-            </For>
-          </ul>
-        </div>
-        <div class="section">
-          <h4>shortcuts</h4>
-          <ul class="shortcuts-list">
-            <li><kbd>/</kbd> <span>search</span></li>
-            <li><kbd>esc</kbd> <span>clear selection</span></li>
-            <li><kbd>f</kbd> <span>focus selected</span></li>
-            <li><kbd>r</kbd> <span>fit graph</span></li>
-            <li><kbd>d</kbd> <span>toggle theme</span></li>
-            <li><kbd>p</kbd> <span>toggle physics</span></li>
-            <li><kbd>l</kbd> <span>toggle labels</span></li>
-          </ul>
-        </div>
+        <DetailPanel
+          selected={selected()}
+          incoming={incoming()}
+          outgoing={outgoing()}
+          onFocus={doFocus}
+          onClear={() => setSelected(null)}
+          onSelectById={selectById}
+          onOpenInVSCode={openInVSCode}
+        />
+        <TopSkills
+          topSkills={topSkills()}
+          graphData={graphData()}
+          onSelect={(node, inc, out) => { setSelected({ ...node, incoming: inc, outgoing: out }); setFocus(node.id); }}
+        />
+        <StatsPanel counts={counts()} stats={stats()} groups={groups()} />
+        <LegendPanel groups={groups()} />
+        <ShortcutsPanel />
         <div class="status">{counts().nodes} nodes · {counts().edges} edges</div>
       </aside>
       <main class="canvas-wrap">
@@ -305,6 +205,7 @@ export function GraphPage() {
         <Graph
           search={search()}
           prefix={prefix()}
+          typeFilter={typeFilter()}
           dark={dark()}
           physics={physics()}
           showLabels={showLabels()}

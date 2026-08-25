@@ -12,6 +12,9 @@ export const groupColors: Record<string, { background: string; border: string }>
   check: { background: "#f97316", border: "#ea580c" },
   report: { background: "#06b6d4", border: "#0891b2" },
   idea: { background: "#ec4899", border: "#db2777" },
+  subagent: { background: "#f59e0b", border: "#d97706" },
+  mcp: { background: "#a855f7", border: "#9333ea" },
+  rule: { background: "#ef4444", border: "#dc2626" },
   default: { background: "#94a3b8", border: "#64748b" },
 };
 
@@ -24,6 +27,7 @@ declare global {
 export const Graph: Component<{
   search: string;
   prefix: string;
+  typeFilter: string;
   dark: boolean;
   physics: boolean;
   showLabels: boolean;
@@ -58,6 +62,7 @@ export const Graph: Component<{
         ...n,
         color: groupColors[n.group] || groupColors.default,
         value: degree.get(n.id) ?? 0,
+        shape: n.type === "mcp" ? "diamond" : n.type === "rule" ? "star" : n.type === "subagent" ? "triangle" : "dot",
       }));
       setColored({ nodes, edges: data.edges });
 
@@ -118,10 +123,12 @@ export const Graph: Component<{
     if (!network || !colored() || !raw()) return;
     const q = props.search.toLowerCase().trim();
     const p = props.prefix;
+    const tf = props.typeFilter;
     const visible = colored()!.nodes.filter((n) => {
       const matchSearch = !q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q);
       const matchPrefix = p === "all" || n.group === p;
-      return matchSearch && matchPrefix;
+      const matchType = tf === "all" || n.type === tf;
+      return matchSearch && matchPrefix && matchType;
     });
     const ids = new Set(visible.map((n) => n.id));
     const groupById = new Map(visible.map((n) => [n.id, n.group]));

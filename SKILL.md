@@ -1,6 +1,6 @@
 ---
-name: openweb-devin-global-skills
-description: α╕¬α╕úα╣ëα╕▓α╕ç web graph α╕éα╕¡α╕ç devin global skills α╣üα╕¬α╕öα╕ç relations α╕₧α╕úα╣ëα╕¡α╕í UX α╕öα╕╡
+name: visulize-devin
+description: สร้าง web graph ของ devin global skills, subagents, MCP, global rules พร้อม UX ดี
 allowed-tools:
   - read
   - edit
@@ -26,105 +26,108 @@ related:
 
 ## Goal
 
-α╕¬α╕úα╣ëα╕▓α╕ç web graph α╕éα╕¡α╕ç devin global skills α╣éα╕öα╕óα╣üα╕¬α╕öα╕çα╕äα╕ºα╕▓α╕íα╕¬α╕▒α╕íα╕₧α╕▒α╕Öα╕ÿα╣îα╕êα╕▓α╕ü `related` α╕úα╕¡α╕çα╕úα╕▒α╕Üα╕üα╕▓α╕úα╕Ñα╕▓α╕ü/α╣Çα╕Ñα╕╖α╕¡α╕ü node α╣Çα╕₧α╕╖α╣êα╕¡α╕ùα╕│ `/follow-write-devin-skills`
+สร้าง web graph ของ devin global skills, subagents, MCP servers, และ global rules โดยแสดงความสัมพันธ์จาก `related` รองรับการลาก/เลือก node เพื่อทำ `/follow-write-devin-skills`
 
 ## Scope
 
-α╣âα╕èα╣ëα╕¬α╕│α╕½α╕úα╕▒α╕Ü `%APPDATA%/devin/skills/` α╕½α╕úα╕╖α╕¡ project skills directory α╣Çα╕₧α╕╖α╣êα╕¡ visualize α╣éα╕äα╕úα╕çα╕¬α╕úα╣ëα╕▓α╕ç skills α╣Çα╕¢α╣çα╕Öα╕üα╕úα╕▓α╕ƒ α╕₧α╕úα╣ëα╕¡α╕í interaction α╣âα╕Ö browser
+ใช้สำหรับ `%APPDATA%/devin/skills/` หรือ project skills directory เพื่อ visualize โครงสร้าง skills, subagents, MCP, global rules เป็นกราฟ พร้อม interaction ใน browser
 
 ## Execute
 
-### 1. Scan Skills
-> Goal: α╕úα╕ºα╕Üα╕úα╕ºα╕í metadata α╕éα╕¡α╕çα╕ùα╕╕α╕ü skill
+### 1. Scan Skills And Resources
+> Goal: รวบรวม metadata ของทุก skill, subagent, MCP server, global rule
 
-1. `glob` α╕½α╕▓ `*/SKILL.md` α╣âα╕Ö target skills directory
-2. `read` α╣üα╕òα╣êα╕Ñα╕░α╣äα╕ƒα╕Ñα╣îα╣üα╕Ñα╕░ parse frontmatter `name`, `description`, `related`
-3. α╕¬α╕úα╣ëα╕▓α╕ç nodes α╕êα╕▓α╕ü `name` α╣üα╕Ñα╕░ edges α╕êα╕▓α╕ü `related`
-4. α╣Çα╕üα╣çα╕Ü data α╣Çα╕¢α╣çα╕Ö `skills-graph.json` α╣âα╕Ö OS temp directory
+1. `glob` หา `*/SKILL.md` ใน target skills directory
+2. `read` แต่ละไฟล์และ parse frontmatter `name`, `description`, `related`
+3. สแกน subagents จาก `.devin/agents/` หรือ `~/.config/devin/agents/`
+4. สแกน MCP servers จาก `.devin/config.json` หรือ MCP config
+5. สแกน global rules จาก `~/.codeium/windsurf/memories/global_rules.md`
+6. สร้าง nodes จาก `name` และ edges จาก `related`
+7. เก็บ data เป็น `skills-graph.json` ใน OS temp directory
 
 ### 2. Analyze Relationships
-> Goal: α╕úα╕╣α╣ë cycles α╣üα╕Ñα╕░α╕üα╕Ñα╕╕α╣êα╕íα╕éα╕¡α╕ç skills
+> Goal: รู้ cycles และกลุ่มของ resources
 
-1. α╕ùα╕│ `/check-circular-dependencies` α╣Çα╕₧α╕╖α╣êα╕¡α╕½α╕▓ cycles α╣âα╕Ö `related`
-2. α╕êα╕▒α╕öα╕üα╕Ñα╕╕α╣êα╕í nodes α╕òα╕▓α╕í prefix: `follow-`, `run-`, `check-`, `report-`, `idea-`
-3. α╕úα╕░α╕Üα╕╕ isolated nodes α╣Çα╕₧α╕╖α╣êα╕¡α╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕ºα╣êα╕▓ `related` α╕äα╣ëα╕▓α╕çα╕½α╕úα╕╖α╕¡α╣äα╕íα╣ê
+1. ทำ `/check-circular-dependencies` เพื่อหา cycles ใน `related`
+2. จัดกลุ่ม nodes ตามประเภท: `skill` (prefix: `follow-`, `run-`, `check-`, `report-`, `idea-`), `subagent`, `mcp`, `rule`
+3. ระบุ isolated nodes เพื่อตรวจสอบว่า `related` ค้างหรือไม่
 
 ### 3. Choose Graph Tech
-> Goal: α╣Çα╕Ñα╕╖α╕¡α╕ü library α╕¬α╕│α╕½α╕úα╕▒α╕Ü graph α╕ùα╕╡α╣Çα╕½α╕íα╕▓α╕░α╕¬α╕í
+> Goal: เลือก library สำหรับ graph ที่เหมาะสม
 
-1. α╕ùα╕│ `/use-lib-effective` α╕¢α╕úα╕░α╣Çα╕íα╕┤α╕Ö graph library α╣Çα╕èα╣êα╕Ö `vis-network`, `d3`, `cytoscape`, `force-graph`
-2. α╕ûα╣ëα╕▓α╕òα╣ëα╕¡α╕çα╕üα╕▓α╕ú quick temp HTML ΓåÆ α╕ùα╕│ `/visualize-in-web`
-3. α╕ûα╣ëα╕▓α╕òα╣ëα╕¡α╕çα╕üα╕▓α╕ú full Solid + TanStack app ΓåÆ α╕ùα╕│ `/follow-solid-tanstack-orpc-unocss` α╕üα╣êα╕¡α╕Ö
-4. α╣Çα╕Ñα╕╖α╕¡α╕ü library α╕ùα╕╡α╕úα╕¡α╕çα╕úα╕▒α╕Ü drag, zoom, pan, α╣üα╕Ñα╕░ tooltip α╣éα╕öα╕óα╣äα╕íα╣êα╣Çα╕éα╕╡α╕óα╕Ö engine α╣Çα╕¡α╕ç
+1. ทำ `/use-lib-effective` ประเมิน graph library เช่น `vis-network`, `d3`, `cytoscape`, `force-graph`
+2. ถ้าต้องการ quick temp HTML → ทำ `/visualize-in-web`
+3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-solid-tanstack-orpc-unocss` ก่อน
+4. เลือก library ที่รองรับ drag, zoom, pan, และ tooltip โดยไม่เขียน engine เอง
 
 ### 4. Design UX
-> Goal: α╕¡α╕¡α╕üα╣üα╕Üα╕Ü graph α╣âα╕½α╣ëα╣Çα╕éα╣ëα╕▓α╣âα╕êα╕çα╣êα╕▓α╕ó
+> Goal: ออกแบบ graph ให้เข้าใจง่าย
 
-1. α╕ùα╕│ `/follow-uxui` α╣Çα╕₧α╕╖α╣êα╕¡α╣Çα╕Ñα╕╖α╕¡α╕ü pattern: dark mode, color coding, search, filter, tooltips
-2. α╕üα╕│α╕½α╕Öα╕öα╕¬α╕╡α╕òα╕▓α╕í prefix α╕éα╕¡α╕ç skill
-3. α╣âα╕èα╣ë force-directed layout α╕¬α╕│α╕½α╕úα╕▒α╕Üα╕üα╕Ñα╕╕α╣êα╕íα╣âα╕½α╕ìα╣ê
-4. α╣Çα╕₧α╕┤α╣êα╕í side panel α╣üα╕¬α╕öα╕ç `description` α╣üα╕Ñα╕░ `related` α╕éα╕¡α╕ç node α╕ùα╕╡α╣Çα╕Ñα╕╖α╕¡α╕ü
+1. ทำ `/follow-uxui` เพื่อเลือก pattern: dark mode, color coding, search, filter, tooltips
+2. กำหนดสีตามประเภท: skill (prefix), subagent, mcp, rule
+3. ใช้ force-directed layout สำหรับกลุ่มใหญ่
+4. เพิ่ม side panel แสดง `description` และ `related` ของ node ที่เลือก
+5. เพิ่ม tabs/views สำหรับสลับระหว่าง skills, subagents, MCP, rules
 
-### 5. Generate Web in `web/`
-> Goal: α╕¬α╕úα╣ëα╕▓α╕ç web project α╕ûα╕▓α╕ºα╕úα╣âα╕Ö `web/` α╕éα╕¡α╕ç workspace
+### 5. Generate Web in `src/`
+> Goal: สร้าง web project ถาวรใน `src/` ของ workspace
 
-1. α╕¬α╕úα╣ëα╕▓α╕ç `web/` directory α╣âα╕Ö project root
-2. α╣âα╕èα╣ë `/follow-web-design` α╕¡α╕¡α╕üα╣üα╕Üα╕Ü UI/UX α╣üα╕Ñα╕░ `/follow-vite` α╕¬α╕úα╣ëα╕▓α╕ç scaffold
-3. α╕¬α╕úα╣ëα╕▓α╕ç entry file (`web/index.html` α╕½α╕úα╕╖α╕¡ `web/src/App.tsx`) α╣éα╕½α╕Ñα╕ö `skills-graph.json`
-4. α╣âα╕èα╣ë graph library α╣Çα╕èα╣êα╕Ö `vis-network`, `d3`, `cytoscape` α╕½α╕úα╕╖α╕¡ `force-graph` render nodes/edges
-5. α╣Çα╕₧α╕┤α╣êα╕í controls: search, filter by prefix, reset zoom, toggle dark mode
-6. α╕úα╕▒α╕Öα╕ùα╕öα╕¬α╕¡α╕Üα╕öα╣ëα╕ºα╕ó `bunx serve web/` α╕½α╕úα╕╖α╕¡ `/open-web`
+1. ใช้ `/follow-web-design` ออกแบบ UI/UX และ `/follow-vite` สร้าง scaffold
+2. สร้าง entry file (`index.html` และ `src/index.tsx`) โหลด `skills-graph.json`
+3. ใช้ graph library render nodes/edges
+4. เพิ่ม controls: search, filter by type/prefix, reset zoom, toggle dark mode
+5. รันทดสอบด้วย `bunx serve` หรือ `/open-web`
 
 ### 6. Add Drag/Select Interaction
-> Goal: α╕£α╕╣α╕üα╕üα╕▓α╕úα╕Ñα╕▓α╕ü/α╣Çα╕Ñα╕╖α╕¡α╕ü node α╕üα╕▒α╕Ü action
+> Goal: ผูกการลาก/เลือก node กับ action
 
-1. α╕êα╕▒α╕Ü event `onNodeDragEnd` α╕½α╕úα╕╖α╕¡ `onNodeSelect` α╕êα╕▓α╕ü graph library
-2. α╣Çα╕íα╕╖α╣êα╕¡ user α╕Ñα╕▓α╕üα╕½α╕úα╕╖α╕¡α╣Çα╕Ñα╕╖α╕¡α╕ü node α╣âα╕½α╣ëα╣üα╕¬α╕öα╕çα╕úα╕▓α╕óα╕Ñα╕░α╣Çα╕¡α╕╡α╕óα╕öα╣âα╕Ö side panel
-3. `ask_user_question` α╕ºα╣êα╕▓α╕òα╣ëα╕¡α╕çα╕üα╕▓α╕úα╕ùα╕│ `/follow-write-devin-skills` α╕¬α╕│α╕½α╕úα╕▒α╕Ü skill α╕Öα╕╡α╣ëα╕½α╕úα╕╖α╕¡α╣äα╕íα╣ê
-4. α╕ûα╣ëα╕▓ user α╕òα╕¡α╕Ü yes ΓåÆ α╕ùα╕│ `/follow-write-devin-skills` α╣éα╕öα╕óα╕úα╕░α╕Üα╕╕ `name` α╕éα╕¡α╕ç node α╕ùα╕╡α╣Çα╕Ñα╕╖α╕¡α╕ü
+1. จับ event `onNodeDragEnd` หรือ `onNodeSelect` จาก graph library
+2. เมื่อ user ลากหรือเลือก node ให้แสดงรายละเอียดใน side panel
+3. `ask_user_question` ว่าต้องการทำ `/follow-write-devin-skills` สำหรับ skill นี้หรือไม่
+4. ถ้า user ตอบ yes → ทำ `/follow-write-devin-skills` โดยระบุ `name` ของ node ที่เลือก
 
 ### 7. Open And Ship
-> Goal: α╣üα╕¬α╕öα╕çα╕£α╕Ñα╣üα╕Ñα╕░ finalize
+> Goal: แสดงผลและ finalize
 
-1. α╕ùα╕│ `/open-web` α╣Çα╕₧α╕╖α╣êα╕¡α╣Çα╕¢α╕┤α╕ö graph α╣âα╕Ö browser
-2. α╕úα╕▓α╕óα╕çα╕▓α╕Öα╕êα╕│α╕Öα╕ºα╕Ö nodes, edges, cycles, α╣üα╕Ñα╕░ isolated nodes
-3. α╕ûα╣ëα╕▓α╕òα╣ëα╕¡α╕çα╕üα╕▓α╕ú ship project α╕êα╕úα╕┤α╕çα╕½α╕Ñα╕▒α╕çα╣Çα╕¬α╕úα╣çα╕ê ΓåÆ α╕ùα╕│ `/ship`
-4. α╕ùα╕│ `/suggest-next-action` α╣Çα╕₧α╕╖α╣êα╕¡α╣üα╕Öα╕░α╕Öα╕│ step α╕ûα╕▒α╕öα╣äα╕¢
+1. ทำ `/open-web` เพื่อเปิด graph ใน browser
+2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
+3. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship`
+4. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
 
 ## Rules
 
 ### 1. Output Location
 
-- α╕¬α╕úα╣ëα╕▓α╕çα╣äα╕ƒα╕Ñα╣îα╕ûα╕▓α╕ºα╕úα╣âα╕Ö `web/` directory α╕éα╕¡α╕ç project
-- α╣Çα╕üα╣çα╕Ü `skills-graph.json` α╣âα╕Ö `web/public/` α╕½α╕úα╕╖α╕¡ `web/src/` α╕òα╕▓α╕í scaffold
-- α╕ûα╣ëα╕▓ user α╕òα╣ëα╕¡α╕çα╕üα╕▓α╕úα╕èα╕▒α╣êα╕ºα╕äα╕úα╕▓α╕ºα╣Çα╕ùα╣êα╕▓α╕Öα╕▒α╣ëα╕Ö ΓåÆ α╣âα╕èα╣ë `/visualize-in-web` α╣üα╕ùα╕Ö
-- α╣äα╕íα╣êα╣Çα╕éα╕╡α╕óα╕Öα╣äα╕ƒα╕Ñα╣î in project source α╣éα╕öα╕óα╣äα╕íα╣êα╣äα╕öα╣ëα╕úα╕▒α╕Üα╕¡α╕Öα╕╕α╕ìα╕▓α╕ò
+- สร้างไฟล์ถาวรใน `src/` directory ของ workspace
+- เก็บ `skills-graph.json` ใน `src/` หรือ `public/` ตาม scaffold
+- ถ้า user ต้องการชั่วคราวเท่านั้น → ใช้ `/visualize-in-web` แทน
+- ไม่เขียนไฟล์ in project source โดยไม่ได้รับอนุญาต
 
 ### 2. Graph UX
 
-- α╣âα╕èα╣ëα╕¬α╕╡α╣üα╕óα╕üα╕òα╕▓α╕í prefix α╕éα╕¡α╕ç skill
-- α╣üα╕¬α╕öα╕ç edges α╕ùα╕┤α╕¿α╕ùα╕▓α╕çα╕êα╕▓α╕ü `related` α╕èα╕▒α╕öα╣Çα╕êα╕Ö
-- α╕úα╕¡α╕çα╕úα╕▒α╕Ü zoom, pan, search, filter α╕òα╕▓α╕í `/follow-uxui`
-- α╣üα╕¬α╕öα╕ç tooltip α╕öα╣ëα╕ºα╕ó `description`
-- α╣äα╕íα╣êα╣üα╕¬α╕öα╕ç cluster α╕ïα╣ëα╕¡α╕Öα╕üα╕▒α╕Öα╕êα╕Öα╕¡α╣êα╕▓α╕Öα╣äα╕íα╣êα╣äα╕½α╕º
+- ใช้สีแยกตามประเภท: skill (prefix), subagent, mcp, rule
+- แสดง edges ทิศทางจาก `related` ชัดเจน
+- รองรับ zoom, pan, search, filter ตาม `/follow-uxui`
+- แสดง tooltip ด้วย `description`
+- ไม่แสดง cluster ซ้อนกันจนอ่านไม่ไหว
 
 ### 3. Effective Libraries
 
-- α╣âα╕èα╣ë `vis-network`, `d3`, α╕½α╕úα╕╖α╕¡ `cytoscape` α╕¬α╕│α╕½α╕úα╕▒α╕Ü graph rendering
-- α╣äα╕íα╣êα╣Çα╕éα╕╡α╕óα╕Ö graph engine α╣Çα╕¡α╕ç
-- α╕ûα╣ëα╕▓α╣âα╕èα╣ë SolidStart α╕òα╣ëα╕¡α╕çα╕ùα╕│ `/follow-solid-tanstack-orpc-unocss` α╕üα╣êα╕¡α╕Ö
-- α╣éα╕½α╕Ñα╕ö library α╕£α╣êα╕▓α╕Ö CDN α╕¬α╕│α╕½α╕úα╕▒α╕Ü temp HTML α╕½α╕úα╕╖α╕¡α╕òα╕┤α╕öα╕òα╕▒α╣ëα╕çα╕£α╣êα╕▓α╕Ö package manager α╕¬α╕│α╕½α╕úα╕▒α╕Ü project
+- ใช้ `vis-network`, `d3`, หรือ `cytoscape` สำหรับ graph rendering
+- ไม่เขียน graph engine เอง
+- ถ้าใช้ SolidStart ต้องทำ `/follow-solid-tanstack-orpc-unocss` ก่อน
+- โหลด library ผ่าน CDN สำหรับ temp HTML หรือติดตั้งผ่าน package manager สำหรับ project
 
 ### 4. Interaction Safety
 
-- α╕ûα╕▓α╕í user α╕üα╣êα╕¡α╕Öα╕úα╕▒α╕Ö `/follow-write-devin-skills`
-- α╣äα╕íα╣ê overwrite skill α╣éα╕öα╕óα╣äα╕íα╣êα╣äα╕öα╣ëα╕úα╕▒α╕Üα╕¡α╕Öα╕╕α╕ìα╕▓α╕ò
-- α╣äα╕íα╣êα╣üα╕üα╣ëα╣äα╕é `SKILL.md` α╕òα╣ëα╕Öα╕ëα╕Üα╕▒α╕Üα╕êα╕▓α╕üα╕üα╕▓α╕úα╕Ñα╕▓α╕ü node α╣éα╕öα╕óα╕òα╕úα╕ç
+- ถาม user ก่อนรัน `/follow-write-devin-skills`
+- ไม่ overwrite skill โดยไม่ได้รับอนุญาต
+- ไม่แก้ไข `SKILL.md` ตรงจากการลาก node โดยตรง
 
 ## Expected Outcome
 
-- Web graph α╣üα╕¬α╕öα╕ç devin global skills α╕ùα╕▒α╣ëα╕çα╕½α╕íα╕ö
-- Relations α╕èα╕▒α╕öα╣Çα╕êα╕Ö α╕₧α╕úα╣ëα╕¡α╕í color coding α╣üα╕Ñα╕░ search/filter
-- α╕¬α╕▓α╕íα╕▓α╕úα╕ûα╕Ñα╕▓α╕ü/α╣Çα╕Ñα╕╖α╕¡α╕ü node α╣Çα╕₧α╕╖α╣êα╕¡α╕ùα╕│ `/follow-write-devin-skills`
-- α╣äα╕íα╣êα╕íα╕╡ circular dependencies α╕ïα╣êα╕¡α╕Öα╕¡α╕óα╕╣α╣ê
-- `web/` directory α╕₧α╕úα╣ëα╕¡α╕í entry file, graph data, α╣üα╕Ñα╕░ build/serve script
+- Web graph แสดง devin global skills, subagents, MCP servers, global rules ทั้งหมด
+- Relations ชัดเจน พร้อม color coding และ search/filter
+- สามารถลาก/เลือก node เพื่อทำ `/follow-write-devin-skills`
+- ไม่มี circular dependencies ซ่อนอยู่
+- `src/` directory พร้อม entry file, graph data, และ build/serve script
