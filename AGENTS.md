@@ -9,6 +9,7 @@ related:
   - validate
   - git-commit
   - ship
+  - watch-deploy
 ---
 
 ## Goal
