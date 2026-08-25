@@ -12,16 +12,6 @@ allowed-tools:
 triggers:
   - user
   - model
-related:
-  - follow-write-devin-skills
-  - check-circular-dependencies
-  - use-lib-effective
-  - visualize-in-web
-  - follow-uxui
-  - follow-web-design
-  - follow-vite
-  - open-web
-  - suggest-next-action
 ---
 
 ## Goal
@@ -35,6 +25,7 @@ related:
 ## Execute
 
 ### 1. Scan Skills And Resources
+
 > Goal: รวบรวม metadata ของทุก skill, subagent, MCP server, global rule
 
 1. `glob` หา `*/SKILL.md` ใน target skills directory
@@ -46,6 +37,7 @@ related:
 7. เก็บ data เป็น `skills-graph.json` ใน OS temp directory
 
 ### 2. Analyze Relationships
+
 > Goal: รู้ cycles และกลุ่มของ resources
 
 1. ทำ `/check-circular-dependencies` เพื่อหา cycles ใน `related`
@@ -53,32 +45,36 @@ related:
 3. ระบุ isolated nodes เพื่อตรวจสอบว่า `related` ค้างหรือไม่
 
 ### 3. Choose Graph Tech
+
 > Goal: เลือก library สำหรับ graph ที่เหมาะสม
 
 1. ทำ `/use-lib-effective` ประเมิน graph library เช่น `vis-network`, `d3`, `cytoscape`, `force-graph`
 2. ถ้าต้องการ quick temp HTML → ทำ `/visualize-in-web`
-3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-solid-tanstack-orpc-unocss` ก่อน
+3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-framework-solid-tanstack-orpc-unocss` ก่อน
 4. เลือก library ที่รองรับ drag, zoom, pan, และ tooltip โดยไม่เขียน engine เอง
 
 ### 4. Design UX
+
 > Goal: ออกแบบ graph ให้เข้าใจง่าย
 
-1. ทำ `/follow-uxui` เพื่อเลือก pattern: dark mode, color coding, search, filter, tooltips
+1. ทำ `/review-frontend` เพื่อเลือก pattern: dark mode, color coding, search, filter, tooltips
 2. กำหนดสีตามประเภท: skill (prefix), subagent, mcp, rule
 3. ใช้ force-directed layout สำหรับกลุ่มใหญ่
 4. เพิ่ม side panel แสดง `description` และ `related` ของ node ที่เลือก
 5. เพิ่ม tabs/views สำหรับสลับระหว่าง skills, subagents, MCP, rules
 
 ### 5. Generate Web in `src/`
+
 > Goal: สร้าง web project ถาวรใน `src/` ของ workspace
 
-1. ใช้ `/follow-web-design` ออกแบบ UI/UX และ `/follow-vite` สร้าง scaffold
+1. ใช้ `/review-frontend` ออกแบบ UI/UX และ `/follow-tool-vite` สร้าง scaffold
 2. สร้าง entry file (`index.html` และ `src/index.tsx`) โหลด `skills-graph.json`
 3. ใช้ graph library render nodes/edges
 4. เพิ่ม controls: search, filter by type/prefix, reset zoom, toggle dark mode
 5. รันทดสอบด้วย `bunx serve` หรือ `/open-web`
 
 ### 6. Add Drag/Select Interaction
+
 > Goal: ผูกการลาก/เลือก node กับ action
 
 1. จับ event `onNodeDragEnd` หรือ `onNodeSelect` จาก graph library
@@ -87,6 +83,7 @@ related:
 4. ถ้า user ตอบ yes → ทำ `/follow-write-devin-skills` โดยระบุ `name` ของ node ที่เลือก
 
 ### 7. Open And Ship
+
 > Goal: แสดงผลและ finalize
 
 1. ทำ `/open-web` เพื่อเปิด graph ใน browser
@@ -107,7 +104,7 @@ related:
 
 - ใช้สีแยกตามประเภท: skill (prefix), subagent, mcp, rule
 - แสดง edges ทิศทางจาก `related` ชัดเจน
-- รองรับ zoom, pan, search, filter ตาม `/follow-uxui`
+- รองรับ zoom, pan, search, filter ตาม `/review-frontend`
 - แสดง tooltip ด้วย `description`
 - ไม่แสดง cluster ซ้อนกันจนอ่านไม่ไหว
 
@@ -115,7 +112,7 @@ related:
 
 - ใช้ `vis-network`, `d3`, หรือ `cytoscape` สำหรับ graph rendering
 - ไม่เขียน graph engine เอง
-- ถ้าใช้ SolidStart ต้องทำ `/follow-solid-tanstack-orpc-unocss` ก่อน
+- ถ้าใช้ SolidStart ต้องทำ `/follow-framework-solid-tanstack-orpc-unocss` ก่อน
 - โหลด library ผ่าน CDN สำหรับ temp HTML หรือติดตั้งผ่าน package manager สำหรับ project
 
 ### 4. Interaction Safety
