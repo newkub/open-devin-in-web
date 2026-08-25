@@ -13,11 +13,15 @@ triggers:
   - user
   - model
 related:
-  - Select
-  - UX
-  - edges
-  - filter
-  - serve
+  - follow-write-devin-skills
+  - check-circular-dependencies
+  - use-lib-effective
+  - visualize-in-web
+  - follow-uxui
+  - follow-web-design
+  - follow-vite
+  - open-web
+  - suggest-next-action
 ---
 
 ## Goal
