@@ -1,4 +1,4 @@
-# visulize-devin
+# visualize-devin
 
 Interactive web graph visualizing Devin global skills, subagents, MCP servers, and global rules relationships.
 
@@ -43,7 +43,7 @@ bun run build
 ## Project Structure
 
 ```
-visulize-devin/
+visualize-devin/
 ├── src/
 │   ├── App.tsx              # Root component
 │   ├── Graph.tsx            # vis-network graph component

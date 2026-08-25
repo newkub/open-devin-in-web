@@ -1,5 +1,5 @@
 ---
-name: visulize-devin
+name: visualize-devin
 description: สร้าง web graph ของ devin global skills, subagents, MCP, global rules พร้อม UX ดี
 allowed-tools:
   - read

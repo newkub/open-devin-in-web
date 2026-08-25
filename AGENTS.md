@@ -1,4 +1,4 @@
-# AGENTS.md - visulize-devin
+# AGENTS.md - visualize-devin
 
 ## Architecture
 
@@ -11,7 +11,7 @@ Web graph visualization of Devin global skills, subagents, MCP servers, and glob
 
 ## Skills
 
-- `visulize-devin: /visulize-devin` — main skill (this repo)
+- `visualize-devin: /visualize-devin` — main skill (this repo)
 
 ## Workspaces
 
