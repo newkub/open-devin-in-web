@@ -50,7 +50,7 @@ triggers:
 
 1. ทำ `/use-lib-effective` ประเมิน graph library เช่น `vis-network`, `d3`, `cytoscape`, `force-graph`
 2. ถ้าต้องการ quick temp HTML → ทำ `/visualize-in-web`
-3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-framework-solid-tanstack-orpc-unocss` ก่อน
+3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-solid-tanstack` ก่อน
 4. เลือก library ที่รองรับ drag, zoom, pan, และ tooltip โดยไม่เขียน engine เอง
 
 ### 4. Design UX
@@ -112,7 +112,7 @@ triggers:
 
 - ใช้ `vis-network`, `d3`, หรือ `cytoscape` สำหรับ graph rendering
 - ไม่เขียน graph engine เอง
-- ถ้าใช้ SolidStart ต้องทำ `/follow-framework-solid-tanstack-orpc-unocss` ก่อน
+- ถ้าใช้ SolidStart ต้องทำ `/follow-solid-tanstack` ก่อน
 - โหลด library ผ่าน CDN สำหรับ temp HTML หรือติดตั้งผ่าน package manager สำหรับ project
 
 ### 4. Interaction Safety
