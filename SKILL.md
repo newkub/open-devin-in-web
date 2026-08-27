@@ -12,6 +12,8 @@ allowed-tools:
 triggers:
   - user
   - model
+related:
+  - visualize-repo-in-web
 ---
 
 ## Goal
