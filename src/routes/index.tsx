@@ -15,7 +15,7 @@ export function GraphPage() {
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
 
-  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("visualize-devin-theme") : null;
+  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("visualize-devin-in-web-theme") : null;
   const [dark, setDark] = createSignal(saved ? saved === "dark" : true);
   const [physics, setPhysics] = createSignal(true);
   const [showLabels, setShowLabels] = createSignal(true);
@@ -25,7 +25,7 @@ export function GraphPage() {
 
   createEffect(() => {
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("visualize-devin-theme", dark() ? "dark" : "light");
+      localStorage.setItem("visualize-devin-in-web-theme", dark() ? "dark" : "light");
     }
   });
 
