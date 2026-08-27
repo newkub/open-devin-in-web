@@ -16,7 +16,7 @@ triggers:
 
 ## Goal
 
-สร้าง web graph ของ devin global skills, subagents, MCP servers, และ global rules โดยแสดงความสัมพันธ์จาก `related` รองรับการลาก/เลือก node เพื่อทำ `/follow-create-devin-skills`
+สร้าง web graph ของ devin global skills, subagents, MCP servers, และ global rules โดยแสดงความสัมพันธ์จาก `related` รองรับการลาก/เลือก node เพื่อทำ `/update-devin-global-skills`
 
 ## Scope
 
@@ -79,8 +79,8 @@ triggers:
 
 1. จับ event `onNodeDragEnd` หรือ `onNodeSelect` จาก graph library
 2. เมื่อ user ลากหรือเลือก node ให้แสดงรายละเอียดใน side panel
-3. `ask_user_question` ว่าต้องการทำ `/follow-create-devin-skills` สำหรับ skill นี้หรือไม่
-4. ถ้า user ตอบ yes → ทำ `/follow-create-devin-skills` โดยระบุ `name` ของ node ที่เลือก
+3. `ask_user_question` ว่าต้องการทำ `/update-devin-global-skills` สำหรับ skill นี้หรือไม่
+4. ถ้า user ตอบ yes → ทำ `/update-devin-global-skills` โดยระบุ `name` ของ node ที่เลือก
 
 ### 7. Open And Ship
 
@@ -117,7 +117,7 @@ triggers:
 
 ### 4. Interaction Safety
 
-- ถาม user ก่อนรัน `/follow-create-devin-skills`
+- ถาม user ก่อนรัน `/update-devin-global-skills`
 - ไม่ overwrite skill โดยไม่ได้รับอนุญาต
 - ไม่แก้ไข `SKILL.md` ตรงจากการลาก node โดยตรง
 
@@ -125,6 +125,6 @@ triggers:
 
 - Web graph แสดง devin global skills, subagents, MCP servers, global rules ทั้งหมด
 - Relations ชัดเจน พร้อม color coding และ search/filter
-- สามารถลาก/เลือก node เพื่อทำ `/follow-create-devin-skills`
+- สามารถลาก/เลือก node เพื่อทำ `/update-devin-global-skills`
 - ไม่มี circular dependencies ซ่อนอยู่
 - `src/` directory พร้อม entry file, graph data, และ build/serve script

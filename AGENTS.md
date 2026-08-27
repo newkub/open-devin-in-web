@@ -6,7 +6,7 @@ related:
   - follow-tool-vite
   - follow-lib-unocss
   - follow-architecture
-  - validate
+  - deep-validate
   - git-commit
   - ship
   - watch-deploy
@@ -43,7 +43,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 > Goal: ตรวจสอบและ commit
 
-1. ทำตาม `/validate`
+1. ทำตาม `/deep-validate`
 2. ทำตาม `/git-commit`
 3. ทำตาม `/ship`
 
@@ -101,4 +101,4 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 - `AGENTS.md` ถูกต้องตาม architecture
 - tech stack mapping ครบ
-- ผ่าน `/validate`
+- ผ่าน `/deep-validate`
