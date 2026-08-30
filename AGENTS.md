@@ -45,7 +45,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 1. ทำตาม `/deep-validate`
 2. ทำตาม `/git-commit`
-3. ทำตาม `/ship-ci`
+3. ทำตาม `/ship`
 
 ## Rules
 
@@ -56,10 +56,10 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 ### 2. Architecture
 
-- **Frontend**: SolidJS + TanStack Router + UnoCSS
-- **Backend**: Elysia + oRPC (serves graph data from skills directory)
-- **Graph**: vis-network (CDN-loaded, force-directed layout)
-- **Build**: Vite
+- Frontend: SolidJS + TanStack Router + UnoCSS
+- Backend: Elysia + oRPC (serves graph data from skills directory)
+- Graph: vis-network (CDN-loaded, force-directed layout)
+- Build: Vite
 - `src/App.tsx` — Main app component
 - `src/Graph.tsx` — Graph visualization
 - `src/components/` — UI panels (Detail, Legend, Shortcuts, Stats, TopSkills)

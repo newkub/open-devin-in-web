@@ -14,6 +14,12 @@ triggers:
   - model
 related:
   - visualize-repo-in-web
+  - update-devin-global-skills
+  - check-circular-dependencies
+  - use-lib-effective
+  - visualize-in-web
+  - follow-solid-tanstack
+  - review-frontend
 ---
 
 ## Goal
@@ -90,7 +96,7 @@ related:
 
 1. ทำ `/open-web` เพื่อเปิด graph ใน browser
 2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
-3. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship-ci`
+3. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship`
 4. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
 
 ## Rules
