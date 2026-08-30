@@ -90,7 +90,7 @@ related:
 
 1. ทำ `/open-web` เพื่อเปิด graph ใน browser
 2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
-3. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship`
+3. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship-ci`
 4. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
 
 ## Rules

@@ -45,7 +45,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 1. ทำตาม `/deep-validate`
 2. ทำตาม `/git-commit`
-3. ทำตาม `/ship`
+3. ทำตาม `/ship-ci`
 
 ## Rules
 
