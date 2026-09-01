@@ -1,6 +1,6 @@
 > ![Status](https://img.shields.io/badge/status-in_development-red)
 
-# visualize-devin-in-web
+# open-devin-in-web
 
 Interactive web graph visualizing Devin global skills, subagents, MCP servers, and global rules relationships.
 
@@ -12,7 +12,7 @@ Interactive web graph visualizing Devin global skills, subagents, MCP servers, a
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│  visualize-devin-in-web                                         │
+│  open-devin-in-web                                         │
 │                                                          │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  [skills]   [subagents]   [mcp]   [rules]          │  │
@@ -70,7 +70,7 @@ Open `http://localhost:5173`. Use search to filter nodes, click a node to see de
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│  visualize-devin-in-web                                         │
+│  open-devin-in-web                                         │
 │                                                          │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  [skills]   [subagents]   [mcp]   [rules]          │  │

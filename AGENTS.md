@@ -1,5 +1,5 @@
 ---
-name: visualize-devin-in-web
+name: open-devin-in-web
 description: Web graph visualization ของ Devin global skills, subagents, MCP servers
 related:
   - follow-framework-solidjs
@@ -18,7 +18,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 ## Scope
 
-ใช้กับ `visualize-devin-in-web` package ที่เป็น web app สำหรับ visualize skills directory แบบ read-only
+ใช้กับ `open-devin-in-web` package ที่เป็น web app สำหรับ visualize skills directory แบบ read-only
 
 ## Execute
 
