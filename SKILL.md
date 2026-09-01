@@ -22,6 +22,7 @@ related:
   - review-frontend
   - improve-uxui
   - ship-verify-local
+  - list-devin-global-skills-relation
 ---
 
 ## Goal
@@ -98,10 +99,11 @@ related:
 
 1. ทำ `/open-web` เพื่อเปิด graph ใน browser
 2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
-3. ถ้าต้องการปรับปรุง UX/UI ของ graph → ทำ `/improve-uxui`
-4. ถ้าต้องการ verify บน local ก่อน push → ทำ `/ship-verify-local`
-5. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship-verify-cicd`
-6. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
+3. ถ้าต้องการดู relations ในรูปตาราง → ทำ `/list-devin-global-skills-relation`
+4. ถ้าต้องการปรับปรุง UX/UI ของ graph → ทำ `/improve-uxui`
+5. ถ้าต้องการ verify บน local ก่อน push → ทำ `/ship-verify-local`
+6. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship-verify-cicd`
+7. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
 
 ## Rules
 
