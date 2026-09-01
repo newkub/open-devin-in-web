@@ -8,7 +8,7 @@ related:
   - follow-architecture
   - deep-validate
   - git-commit
-  - ship
+  - ship-verify-cicd
   - watch-deploy
 ---
 
@@ -45,7 +45,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 1. ทำตาม `/deep-validate`
 2. ทำตาม `/git-commit`
-3. ทำตาม `/ship`
+3. ทำตาม `/ship-verify-cicd`
 
 ## Rules
 
@@ -102,3 +102,4 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 - `AGENTS.md` ถูกต้องตาม architecture
 - tech stack mapping ครบ
 - ผ่าน `/deep-validate`
+
