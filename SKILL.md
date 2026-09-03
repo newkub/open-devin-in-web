@@ -31,6 +31,7 @@ related:
 ## Scope
 
 ใช้สำหรับ `%APPDATA%/devin/skills/` หรือ project skills directory เพื่อ visualize โครงสร้าง skills, subagents, MCP, global rules เป็นกราฟ พร้อม interaction ใน browser
+ถ้าต้องการ visualize repository อื่นๆ ทั่วไป ให้ดู `/visualize-repo-in-web`
 
 ## Execute
 
