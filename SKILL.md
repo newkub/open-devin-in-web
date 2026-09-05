@@ -1,6 +1,7 @@
 ---
 name: open-devin-in-web
 description: สร้าง web graph ของ devin global skills, subagents, MCP, global rules พร้อม UX ดี
+argument-hint: "[scope]"
 allowed-tools:
   - read
   - edit
