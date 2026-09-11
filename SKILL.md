@@ -39,13 +39,13 @@ related:
 
 > Goal: รวบรวม metadata ของทุก skill, subagent, MCP server, global rule
 
-1. `glob` หา `*/SKILL.md` ใน target skills directory
-2. `read` แต่ละไฟล์และ parse frontmatter `name`, `description`, `related`
-3. สแกน subagents จาก `.devin/agents/` หรือ `~/.config/devin/agents/`
-4. สแกน MCP servers จาก `.devin/config.json` หรือ MCP config
-5. สแกน global rules จาก `~/.codeium/windsurf/memories/global_rules.md`
-6. สร้าง nodes จาก `name` และ edges จาก `related`
-7. เก็บ data เป็น `skills-graph.json` ใน OS temp directory
+Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src/orpc/router.ts`) ที่ scan live จาก env vars:
+
+1. `SKILLS_ROOT` — skills directory (default `%APPDATA%\devin\skills`), glob `*/SKILL.md` แล้ว parse frontmatter `name`, `description`, `related`
+2. `AGENTS_ROOT` — subagents directory (default `~/.config/devin/agents`), glob `*/AGENT.md`
+3. `MCP_CONFIG` — MCP config file (default `<SKILLS_ROOT>/.devin/config.json`, อ่าน key `mcpServers` หรือ `servers`)
+4. `GLOBAL_RULES` — global rules file (default `~/.codeium/windsurf/memories/global_rules.md`)
+5. สร้าง nodes จาก `name` และ edges จาก `related` แล้ว serve ผ่าน oRPC procedure `skillsGraph` (ไม่เขียนไฟล์ json)
 
 ### 2. Analyze Relationships
 
@@ -55,14 +55,15 @@ related:
 2. จัดกลุ่ม nodes ตามประเภท: `skill` (prefix: `follow-`, `run-`, `check-`, `report-`, `idea-`), `subagent`, `mcp`, `rule`
 3. ระบุ isolated nodes เพื่อตรวจสอบว่า `related` ค้างหรือไม่
 
-### 3. Choose Graph Tech
+### 3. Graph Tech (Fixed)
 
-> Goal: เลือก library สำหรับ graph ที่เหมาะสม
+> Goal: ใช้ stack ที่ติดตั้งอยู่ใน project
 
-1. ทำ `/alternative` ประเมิน graph library เช่น `vis-network`, `d3`, `cytoscape`, `force-graph`
-2. ถ้าต้องการ quick temp HTML → ทำ `/visualize-in-web`
-3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-create-web-solid-tanstack-router` ก่อน
-4. เลือก library ที่รองรับ drag, zoom, pan, และ tooltip โดยไม่เขียน engine เอง
+1. ใช้ `vis-network` (dependency ใน `package.json`) สำหรับ force-directed graph — รองรับ drag, zoom, pan, tooltip
+2. Frontend: SolidJS + `@tanstack/solid-router` + UnoCSS + `vite-plugin-solid`
+3. Backend: Elysia + oRPC (`server.ts`) serve `/rpc*` บน port 3000
+4. ถ้าต้องการ quick temp HTML แทน → ทำ `/visualize-in-web`
+5. ไม่เขียน graph engine เอง
 
 ### 4. Design UX
 
@@ -74,15 +75,15 @@ related:
 4. เพิ่ม side panel แสดง `description` และ `related` ของ node ที่เลือก
 5. เพิ่ม tabs/views สำหรับสลับระหว่าง skills, subagents, MCP, rules
 
-### 5. Generate Web in `src/`
+### 5. Run Existing Project
 
-> Goal: สร้าง web project ถาวรใน `src/` ของ workspace
+> Goal: รัน web app ที่มีอยู่ใน skill directory นี้
 
-1. ใช้ `/review-frontend` ออกแบบ UI/UX และ `/follow-tool-vite` สร้าง scaffold
-2. สร้าง entry file (`index.html` และ `src/index.tsx`) โหลด `skills-graph.json`
-3. ใช้ graph library render nodes/edges
-4. เพิ่ม controls: search, filter by type/prefix, reset zoom, toggle dark mode
-5. รันทดสอบด้วย `bunx serve` หรือ `/open-web`
+1. cd เข้า skill directory (`open-devin-in-web/`) แล้วรัน `bun install`
+2. รัน `bun run server` เพื่อ start Elysia + oRPC server บน `http://localhost:3000` (route `/rpc*`, procedure `skillsGraph`)
+3. รัน `bun run dev` เพื่อ start Vite dev server บน `http://localhost:5173` (proxy `/rpc` → 3000 ตาม `vite.config.ts`)
+4. สำหรับ production: `bun run build` แล้ว `bun run preview`
+5. เปิด `http://localhost:5173` ด้วย `/open-web`
 
 ### 6. Add Drag/Select Interaction
 
@@ -108,8 +109,8 @@ related:
 
 ### 1. Output Location
 
-- สร้างไฟล์ถาวรใน `src/` directory ของ workspace
-- เก็บ `skills-graph.json` ใน `src/` หรือ `public/` ตาม scaffold
+- ใช้ project ใน skill directory นี้เป็นแอปถาวร (`index.html`, `src/`, `server.ts` มีอยู่แล้ว)
+- Graph data มาจาก oRPC server แบบ live — ไม่เขียน `skills-graph.json`
 - ถ้า user ต้องการชั่วคราวเท่านั้น → ใช้ `/visualize-in-web` แทน
 - ไม่เขียนไฟล์ in project source โดยไม่ได้รับอนุญาต
 
@@ -123,10 +124,9 @@ related:
 
 ### 3. Effective Libraries
 
-- ใช้ `vis-network`, `d3`, หรือ `cytoscape` สำหรับ graph rendering
+- ใช้ `vis-network` ที่ติดตั้งใน `package.json` สำหรับ graph rendering
 - ไม่เขียน graph engine เอง
-- ถ้าใช้ SolidStart ต้องทำ `/follow-create-web-solid-tanstack-router` ก่อน
-- โหลด library ผ่าน CDN สำหรับ temp HTML หรือติดตั้งผ่าน package manager สำหรับ project
+- ติดตั้ง dependencies ผ่าน `bun install` เท่านั้น — ไม่โหลด library ผ่าน CDN ใน project นี้
 
 ### 4. Interaction Safety
 
@@ -140,4 +140,4 @@ related:
 - Relations ชัดเจน พร้อม color coding และ search/filter
 - สามารถลาก/เลือก node เพื่อทำ `/update-devin-global-skills`
 - ไม่มี circular dependencies ซ่อนอยู่
-- `src/` directory พร้อม entry file, graph data, และ build/serve script
+- App รันด้วย `bun run server` (:3000) + `bun run dev` (:5173)
