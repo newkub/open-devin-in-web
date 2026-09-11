@@ -133,6 +133,8 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 - ถาม user ก่อนรัน `/update-devin-global-skills`
 - ไม่ overwrite skill โดยไม่ได้รับอนุญาต
 - ไม่แก้ไข `SKILL.md` ตรงจากการลาก node โดยตรง
+- ใช้ /alternative ถ้าจำเป็น
+- ใช้ /follow-create-web-solid-tanstack-router ถ้าจำเป็น
 
 ## Expected Outcome
 
