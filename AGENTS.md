@@ -2,7 +2,7 @@
 name: open-devin-in-web
 description: Web graph visualization ของ Devin global skills, subagents, MCP servers
 related:
-  - follow-framework-solidjs
+  - follow-lib-solidjs
   - follow-tool-vite
   - follow-lib-unocss
   - follow-architecture
@@ -34,7 +34,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 > Goal: พัฒนาและ maintain visualization
 
-1. ทำตาม `/follow-framework-solidjs`
+1. ทำตาม `/follow-lib-solidjs`
 2. ใช้ `/follow-tool-vite` สำหรับ build
 3. ใช้ `/follow-lib-unocss` สำหรับ styling
 4. รัน `bun run build` หลังแก้ไข
@@ -70,12 +70,12 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 ### 3. Tech Stack
 
-- `SolidJS: /follow-framework-solidjs`
+- `SolidJS: /follow-lib-solidjs`
 - `Vite: /follow-tool-vite`
 - `UnoCSS: /follow-lib-unocss`
-- `Elysia: /learn-from-web`
-- `oRPC: /learn-from-web`
-- `vis-network: /learn-from-web`
+- `Elysia: /learn-web`
+- `oRPC: /learn-web`
+- `vis-network: /learn-web`
 
 ### 4. Scripts
 

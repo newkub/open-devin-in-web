@@ -6,7 +6,7 @@ allowed-tools:
   - read
   - edit
   - grep
-  - glob
+  - find_file_by_name
   - exec
   - write
   - ask_user_question
@@ -14,15 +14,14 @@ triggers:
   - user
   - model
 related:
-  - visualize-repo-in-web
+  - visualize-in-web
   - update-devin-global-skills
   - check-circular-dependencies
-  - use-lib-effective
-  - visualize-in-web
-  - follow-solid-tanstack
+  - alternative
+  - follow-create-web-solid-tanstack-router
   - review-frontend
   - ship
-  - list-devin-global-skills-relation
+  - list-devin-global-skills
 ---
 
 ## Goal
@@ -32,7 +31,7 @@ related:
 ## Scope
 
 ใช้สำหรับ `%APPDATA%/devin/skills/` หรือ project skills directory เพื่อ visualize โครงสร้าง skills, subagents, MCP, global rules เป็นกราฟ พร้อม interaction ใน browser
-ถ้าต้องการ visualize repository อื่นๆ ทั่วไป ให้ดู `/visualize-repo-in-web`
+ถ้าต้องการ visualize repository อื่นๆ ทั่วไป ให้ดู `/visualize-in-web`
 
 ## Execute
 
@@ -60,9 +59,9 @@ related:
 
 > Goal: เลือก library สำหรับ graph ที่เหมาะสม
 
-1. ทำ `/use-lib-effective` ประเมิน graph library เช่น `vis-network`, `d3`, `cytoscape`, `force-graph`
+1. ทำ `/alternative` ประเมิน graph library เช่น `vis-network`, `d3`, `cytoscape`, `force-graph`
 2. ถ้าต้องการ quick temp HTML → ทำ `/visualize-in-web`
-3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-solid-tanstack` ก่อน
+3. ถ้าต้องการ full Solid + TanStack app → ทำ `/follow-create-web-solid-tanstack-router` ก่อน
 4. เลือก library ที่รองรับ drag, zoom, pan, และ tooltip โดยไม่เขียน engine เอง
 
 ### 4. Design UX
@@ -100,7 +99,7 @@ related:
 
 1. ทำ `/open-web` เพื่อเปิด graph ใน browser
 2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
-3. ถ้าต้องการดู relations ในรูปตาราง → ทำ `/list-devin-global-skills-relation`
+3. ถ้าต้องการดู relations ในรูปตาราง → ทำ `/list-devin-global-skills`
 4. ถ้าต้องการ verify บน local ก่อน push → ทำ `/ship`
 5. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship`
 6. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
@@ -126,7 +125,7 @@ related:
 
 - ใช้ `vis-network`, `d3`, หรือ `cytoscape` สำหรับ graph rendering
 - ไม่เขียน graph engine เอง
-- ถ้าใช้ SolidStart ต้องทำ `/follow-solid-tanstack` ก่อน
+- ถ้าใช้ SolidStart ต้องทำ `/follow-create-web-solid-tanstack-router` ก่อน
 - โหลด library ผ่าน CDN สำหรับ temp HTML หรือติดตั้งผ่าน package manager สำหรับ project
 
 ### 4. Interaction Safety
