@@ -189,14 +189,22 @@
 }
 
 .search-meta {
+  position: absolute;
+  top: 100%;
+  left: 0;
   font-size: 0.75rem;
   color: var(--muted);
   padding: 2px 4px 0;
 }
 
 .search-results {
+  position: absolute;
+  top: calc(100% + 18px);
+  left: 0;
+  right: 0;
+  z-index: 30;
   list-style: none;
-  margin: 4px 0 0;
+  margin: 0;
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--border);

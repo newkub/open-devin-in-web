@@ -230,83 +230,6 @@ export function GraphPage() {
   return (
     <div class="app" classList={{ light: !dark() }}>
       <aside class="sidebar" classList={{ hide: !sidebarOpen() }}>
-        <h1>Open Devin</h1>
-        <div class="search-wrap">
-          <span class="i-mdi-magnify search-icon" />
-          <input
-            id="skill-search"
-            type="text"
-            placeholder="search skills (press /)..."
-            aria-label="Search skills"
-            title="Press / to focus, Enter to select first match, Esc to clear"
-            value={search()}
-            onInput={(e) => setSearch(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && searchMatches()[0]) selectById(searchMatches()[0].id);
-              if (e.key === "Escape") { setSearch(""); e.currentTarget.blur(); }
-            }}
-          />
-          <Show when={search().trim()}>
-            <div class="search-meta">{searchMatches().length} matches</div>
-            <Show when={searchMatches().length > 0}>
-              <ul class="search-results">
-                <For each={searchMatches().slice(0, 8)}>
-                  {(m) => (
-                    <li onClick={() => selectById(m.id)}>
-                      <span class="related-dot" style={{ "background-color": (groupColors[m.group] || groupColors.default).background }} />
-                      <span class="sr-id">{m.id}</span>
-                      <span class="sr-type">{m.type}</span>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Show>
-          </Show>
-        </div>
-        <select value={prefix()} onChange={(e) => setPrefix(e.currentTarget.value)} aria-label="Filter by prefix" title="Filter by skill prefix">
-          <option value="all">all prefixes ({counts().nodes})</option>
-          <For each={groups()}>
-            {(g) => <option value={g}>{g} ({stats()?.groupCounts[g] ?? 0})</option>}
-          </For>
-        </select>
-        <select value={typeFilter()} onChange={(e) => setTypeFilter(e.currentTarget.value)} aria-label="Filter by type" title="Filter by resource type">
-          <option value="all">all types ({counts().nodes})</option>
-          <option value="skill">skills ({stats()?.typeCounts["skill"] ?? 0})</option>
-          <option value="subagent">subagents ({stats()?.typeCounts["subagent"] ?? 0})</option>
-          <option value="mcp">mcp servers ({stats()?.typeCounts["mcp"] ?? 0})</option>
-          <option value="rule">global rules ({stats()?.typeCounts["rule"] ?? 0})</option>
-        </select>
-        <div class="controls">
-          <button title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>
-            <span class={dark() ? "i-mdi-white-balance-sunny" : "i-mdi-weather-night"} /> {dark() ? "light" : "dark"}
-          </button>
-          <button classList={{ active: physics() }} title="Toggle physics (P)" onClick={() => setPhysics((v) => !v)}>
-            <span class="i-mdi-atom" /> physics
-          </button>
-          <button classList={{ active: showLabels() }} title="Toggle labels (L)" onClick={() => setShowLabels((v) => !v)}>
-            <span class={showLabels() ? "i-mdi-label" : "i-mdi-label-off"} /> labels
-          </button>
-        </div>
-        <div class="controls">
-          <button classList={{ active: hideIsolated() }} title="Hide nodes with no edges (I)" onClick={() => setHideIsolated((v) => !v)}>
-            <span class="i-mdi-filter-remove" /> isolated
-          </button>
-          <button classList={{ active: clusterMode() }} title="Group nodes into prefix clusters (C)" onClick={() => setClusterMode((v) => !v)}>
-            <span class="i-mdi-hexagon-multiple" /> cluster
-          </button>
-          <button classList={{ active: issuesOnly() }} title="Show only nodes with review findings/observations (H)" onClick={() => setIssuesOnly((v) => !v)}>
-            <span class="i-mdi-alert-circle-outline" /> issues
-          </button>
-          <button title="Export graph as PNG" onClick={exportPng}>
-            <span class="i-mdi-camera" /> png
-          </button>
-        </div>
-        <div class="controls">
-          <button title="Zoom out" onClick={() => setZoom({ dir: "out" })}><span class="i-mdi-minus" /></button>
-          <button title="Fit graph (R)" onClick={doReset}><span class="i-mdi-fit-to-screen" /> fit</button>
-          <button title="Zoom in" onClick={() => setZoom({ dir: "in" })}><span class="i-mdi-plus" /></button>
-          <button title="Jump to a random skill" onClick={doRandom}><span class="i-mdi-dice-5" /> random</button>
-        </div>
         <TopSkills
           topSkills={topSkills()}
           graphData={graphData()}
@@ -347,13 +270,84 @@ export function GraphPage() {
         <div class="status">{visibleCount() ?? counts().nodes}/{counts().nodes} nodes · {counts().edges} edges</div>
       </aside>
       <main class="canvas-wrap">
-        <button
-          class="sidebar-toggle"
-          title="Toggle sidebar (B)"
-          onClick={() => setSidebarOpen((v) => !v)}
-        >
-          <span class={sidebarOpen() ? "i-mdi-menu-open" : "i-mdi-menu"} />
-        </button>
+        <div class="topbar">
+          <button class="tb-btn" title="Toggle panels (B)" onClick={() => setSidebarOpen((v) => !v)}>
+            <span class={sidebarOpen() ? "i-mdi-menu-open" : "i-mdi-menu"} />
+          </button>
+          <span class="brand">Open Devin</span>
+          <div class="search-wrap">
+            <span class="i-mdi-magnify search-icon" />
+            <input
+              id="skill-search"
+              type="text"
+              placeholder="search skills (press /)..."
+              aria-label="Search skills"
+              title="Press / to focus, Enter to select first match, Esc to clear"
+              value={search()}
+              onInput={(e) => setSearch(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchMatches()[0]) selectById(searchMatches()[0].id);
+                if (e.key === "Escape") { setSearch(""); e.currentTarget.blur(); }
+              }}
+            />
+            <Show when={search().trim()}>
+              <div class="search-meta">{searchMatches().length} matches</div>
+              <Show when={searchMatches().length > 0}>
+                <ul class="search-results">
+                  <For each={searchMatches().slice(0, 8)}>
+                    {(m) => (
+                      <li onClick={() => selectById(m.id)}>
+                        <span class="related-dot" style={{ "background-color": (groupColors[m.group] || groupColors.default).background }} />
+                        <span class="sr-id">{m.id}</span>
+                        <span class="sr-type">{m.type}</span>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </Show>
+            </Show>
+          </div>
+          <select value={prefix()} onChange={(e) => setPrefix(e.currentTarget.value)} aria-label="Filter by prefix" title="Filter by skill prefix">
+            <option value="all">all prefixes ({counts().nodes})</option>
+            <For each={groups()}>
+              {(g) => <option value={g}>{g} ({stats()?.groupCounts[g] ?? 0})</option>}
+            </For>
+          </select>
+          <select value={typeFilter()} onChange={(e) => setTypeFilter(e.currentTarget.value)} aria-label="Filter by type" title="Filter by resource type">
+            <option value="all">all types ({counts().nodes})</option>
+            <option value="skill">skills ({stats()?.typeCounts["skill"] ?? 0})</option>
+            <option value="subagent">subagents ({stats()?.typeCounts["subagent"] ?? 0})</option>
+            <option value="mcp">mcp servers ({stats()?.typeCounts["mcp"] ?? 0})</option>
+            <option value="rule">global rules ({stats()?.typeCounts["rule"] ?? 0})</option>
+          </select>
+          <div class="tb-group">
+            <button class="tb-btn" title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>
+              <span class={dark() ? "i-mdi-white-balance-sunny" : "i-mdi-weather-night"} />
+            </button>
+            <button class="tb-btn" classList={{ active: physics() }} title="Toggle physics (P)" onClick={() => setPhysics((v) => !v)}>
+              <span class="i-mdi-atom" />
+            </button>
+            <button class="tb-btn" classList={{ active: showLabels() }} title="Toggle labels (L)" onClick={() => setShowLabels((v) => !v)}>
+              <span class={showLabels() ? "i-mdi-label" : "i-mdi-label-off"} />
+            </button>
+            <button class="tb-btn" classList={{ active: hideIsolated() }} title="Hide nodes with no edges (I)" onClick={() => setHideIsolated((v) => !v)}>
+              <span class="i-mdi-filter-remove" />
+            </button>
+            <button class="tb-btn" classList={{ active: issuesOnly() }} title="Show only nodes with review findings/observations (H)" onClick={() => setIssuesOnly((v) => !v)}>
+              <span class="i-mdi-alert-circle-outline" />
+            </button>
+            <button class="tb-btn" classList={{ active: clusterMode() }} title="Group nodes into prefix clusters (C)" onClick={() => setClusterMode((v) => !v)}>
+              <span class="i-mdi-hexagon-multiple" />
+            </button>
+          </div>
+          <div class="tb-group">
+            <button class="tb-btn" title="Zoom out" onClick={() => setZoom({ dir: "out" })}><span class="i-mdi-minus" /></button>
+            <button class="tb-btn" title="Fit graph (R)" onClick={doReset}><span class="i-mdi-fit-to-screen" /></button>
+            <button class="tb-btn" title="Zoom in" onClick={() => setZoom({ dir: "in" })}><span class="i-mdi-plus" /></button>
+            <button class="tb-btn" title="Jump to a random skill" onClick={doRandom}><span class="i-mdi-dice-5" /></button>
+            <button class="tb-btn" title="Export graph as PNG" onClick={exportPng}><span class="i-mdi-camera" /></button>
+          </div>
+        </div>
         <Show when={selected()}>
           <div class="detail-float">
             <DetailPanel

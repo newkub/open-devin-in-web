@@ -195,10 +195,82 @@
   background: rgba(248, 250, 252, 0.85);
 }
 
-/* floating detail card + sidebar toggle */
+/* top bar */
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  z-index: 15;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.topbar .search-wrap {
+  flex: 1;
+  max-width: 340px;
+  min-width: 140px;
+}
+
+.topbar select {
+  max-width: 190px;
+}
+
+.tb-group {
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.tb-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.tb-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* subtle dot grid behind graph */
+.graph-canvas {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* floating detail card */
 .detail-float {
   position: absolute;
-  top: 16px;
+  top: 62px;
   right: 16px;
   width: 320px;
   max-height: calc(100% - 32px);
@@ -213,23 +285,6 @@
 .detail-float .detail {
   margin-top: 0;
   background: transparent;
-}
-
-.sidebar-toggle {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 20;
-  padding: 6px 8px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 8px;
-}
-
-.sidebar-toggle:hover {
-  background: var(--accent);
-  color: #fff;
 }
 
 .sidebar.hide {
