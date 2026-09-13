@@ -10,7 +10,7 @@ export const DetailPanel: Component<{
   onClear: () => void;
   onEgo: () => void;
   onSelectById: (id: string) => void;
-  onOpenInVSCode: (dir: string) => void;
+  onOpenInVSCode: (node: GraphNode) => void;
 }> = (props) => {
   return (
     <Show when={props.selected}>
@@ -30,8 +30,10 @@ export const DetailPanel: Component<{
           <button classList={{ active: props.egoActive }} title="Show only this node and its neighbors" onClick={props.onEgo}>ego net</button>
           <button onClick={props.onClear}>clear</button>
           <button title="Copy node id" onClick={() => navigator.clipboard?.writeText?.(props.selected()!.id)}>copy</button>
-          <button title="Copy /skill invocation" onClick={() => navigator.clipboard?.writeText?.(`/${props.selected()!.id}`)}>copy /</button>
-          <button onClick={() => props.onOpenInVSCode(props.selected()!.dir)}>open</button>
+          <Show when={props.selected()!.type === "skill"}>
+            <button title="Copy /skill invocation" onClick={() => navigator.clipboard?.writeText?.(`/${props.selected()!.id}`)}>copy /</button>
+          </Show>
+          <button title="Open file in VS Code" onClick={() => props.onOpenInVSCode(props.selected()!)}>open</button>
         </div>
         <Show when={(props.selected()!.issues?.length ?? 0) > 0}>
           <div class="related-section">

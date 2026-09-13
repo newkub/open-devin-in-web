@@ -135,9 +135,16 @@ export const Graph: Component<{
           arrows: { to: { enabled: true, scaleFactor: 0.4 } },
           width: 0.6,
           color: { opacity: 0.35 },
+          smooth: false,
         },
-        physics: { enabled: props.physics, stabilization: { iterations: 80 } },
-        interaction: { hover: true, tooltipDelay: 200 },
+        layout: { improvedLayout: false },
+        physics: {
+          enabled: props.physics,
+          solver: "forceAtlas2Based",
+          forceAtlas2Based: { gravitationalConstant: -60, springLength: 120, damping: 0.6 },
+          stabilization: { iterations: 150, updateInterval: 25 },
+        },
+        interaction: { hover: true, tooltipDelay: 200, hideEdgesOnDrag: true, hideEdgesOnZoom: true },
       });
       props.onNetwork?.(network);
       network.on("selectNode", () => {

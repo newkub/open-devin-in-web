@@ -4,4 +4,6 @@ import type { GraphData } from "./router";
 
 type SkillsClient = { skillsGraph: Client<Record<never, never>, undefined, GraphData, unknown> };
 
-export const orpc = createORPCClient<SkillsClient>(new RPCLink({ url: "/rpc" }));
+export const orpc = createORPCClient<SkillsClient>(
+  new RPCLink({ url: new URL("/rpc", window.location.origin) }),
+);

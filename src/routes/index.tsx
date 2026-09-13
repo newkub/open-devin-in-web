@@ -35,6 +35,7 @@ export function GraphPage() {
   const [hideIsolated, setHideIsolated] = persisted("hide-isolated", false);
   const [issuesOnly, setIssuesOnly] = persisted("issues-only", false);
   const [sidebarOpen, setSidebarOpen] = persisted("sidebar", true);
+  const [tab, setTab] = persisted("panel-tab", "explore");
   const [ego, setEgo] = createSignal<string | null>(null);
   const [physics, setPhysics] = createSignal(true);
   const [clusterMode, setClusterMode] = createSignal(false);
@@ -187,8 +188,10 @@ export function GraphPage() {
     setFocus(id);
   };
 
-  const openInVSCode = (dir: string) => {
-    window.open(`vscode://file/C:/Users/Veerapong/AppData/Roaming/devin/skills/${dir}/SKILL.md`);
+  const openInVSCode = (node: GraphNode) => {
+    const file = node.file;
+    if (!file) return;
+    window.open(`vscode://file/${file.replaceAll("\\", "/")}`);
   };
 
   const exportPng = () => {
@@ -230,43 +233,60 @@ export function GraphPage() {
   return (
     <div class="app" classList={{ light: !dark() }}>
       <aside class="sidebar" classList={{ hide: !sidebarOpen() }}>
-        <TopSkills
-          topSkills={topSkills()}
-          graphData={graphData()}
-          onSelect={(node, inc, out) => { setSelected({ ...node, incoming: inc, outgoing: out }); setFocus(node.id); }}
-        />
-        <Show when={isolatedNodes().length > 0}>
-          <Collapsible title={`isolated (${isolatedNodes().length})`}>
-            <ul class="related-list">
-              <For each={isolatedNodes().slice(0, 20)}>
-                {(n) => (
-                  <li onClick={() => selectById(n.id)}>
-                    <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
-                    <span>{n.id}</span>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Collapsible>
+        <div class="tabs" role="tablist">
+          <button classList={{ active: tab() === "explore" }} role="tab" onClick={() => setTab("explore")}>
+            <span class="i-mdi-compass-outline" /> explore
+          </button>
+          <button classList={{ active: tab() === "stats" }} role="tab" onClick={() => setTab("stats")}>
+            <span class="i-mdi-chart-bar" /> stats
+          </button>
+          <button classList={{ active: tab() === "help" }} role="tab" onClick={() => setTab("help")}>
+            <span class="i-mdi-keyboard-outline" /> help
+          </button>
+        </div>
+        <Show when={tab() === "explore"}>
+          <TopSkills
+            topSkills={topSkills()}
+            graphData={graphData()}
+            onSelect={(node, inc, out) => { setSelected({ ...node, incoming: inc, outgoing: out }); setFocus(node.id); }}
+          />
+          <Show when={isolatedNodes().length > 0}>
+            <Collapsible title={`isolated (${isolatedNodes().length})`}>
+              <ul class="related-list">
+                <For each={isolatedNodes().slice(0, 20)}>
+                  {(n) => (
+                    <li onClick={() => selectById(n.id)}>
+                      <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
+                      <span>{n.id}</span>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Collapsible>
+          </Show>
+          <Show when={issueNodes().length > 0}>
+            <Collapsible title={`health (${issueNodes().length})`}>
+              <ul class="related-list">
+                <For each={issueNodes().slice(0, 20)}>
+                  {(n) => (
+                    <li onClick={() => selectById(n.id)}>
+                      <span class="sev-dot" style={{ "background-color": severityColors[n.maxSeverity ?? "Info"] }} />
+                      <span class="sr-id">{n.id}</span>
+                      <span class="count">{(n.findings ?? 0) + (n.observations ?? 0)}</span>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Collapsible>
+          </Show>
         </Show>
-        <Show when={issueNodes().length > 0}>
-          <Collapsible title={`health (${issueNodes().length})`}>
-            <ul class="related-list">
-              <For each={issueNodes().slice(0, 20)}>
-                {(n) => (
-                  <li onClick={() => selectById(n.id)}>
-                    <span class="sev-dot" style={{ "background-color": severityColors[n.maxSeverity ?? "Info"] }} />
-                    <span class="sr-id">{n.id}</span>
-                    <span class="count">{(n.findings ?? 0) + (n.observations ?? 0)}</span>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Collapsible>
+        <Show when={tab() === "stats"}>
+          <StatsPanel counts={counts()} stats={stats()} groups={groups()} review={graphData()?.review} />
+          <LegendPanel groups={groups()} />
         </Show>
-        <StatsPanel counts={counts()} stats={stats()} groups={groups()} review={graphData()?.review} />
-        <LegendPanel groups={groups()} />
-        <ShortcutsPanel />
+        <Show when={tab() === "help"}>
+          <ShortcutsPanel />
+        </Show>
         <div class="status">{visibleCount() ?? counts().nodes}/{counts().nodes} nodes · {counts().edges} edges</div>
       </aside>
       <main class="canvas-wrap">
@@ -395,7 +415,7 @@ export function GraphPage() {
           onError={(e) => { setLoading(false); setError(String(e)); }}
           onNetwork={(n) => (networkRef = n)}
           onClusterSelect={onClusterSelect}
-          onDoubleClick={(node) => openInVSCode(node.dir)}
+          onDoubleClick={(node) => openInVSCode(node)}
         />
       </main>
     </div>
