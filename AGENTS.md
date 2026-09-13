@@ -5,7 +5,7 @@ related:
   - follow-lib-solidjs
   - follow-tool-vite
   - follow-lib-unocss
-  - follow-architecture
+  - review-architecture
   - deep-validate
   - git-commit
   - ship
@@ -27,7 +27,7 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 > Goal: ตรวจสอบ workspace ก่อนลงมือ
 
 1. ทำตาม `/follow-agents-md` เพื่ออ่าน `AGENTS.md`
-2. ทำตาม `/follow-architecture`
+2. ทำตาม `/review-architecture`
 3. อ่าน global rules จาก `C:\Users\Veerapong\.codeium\windsurf\memories\global_rules.md`
 
 ### 2. Develop

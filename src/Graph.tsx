@@ -31,6 +31,8 @@ export const Graph: Component<{
   dark: boolean;
   physics: boolean;
   showLabels: boolean;
+  hideIsolated: boolean;
+  clusterMode: boolean;
   reset: number;
   focus: string | null;
   highlight: string | null;
@@ -39,12 +41,34 @@ export const Graph: Component<{
   onData: (data: GraphData) => void;
   onReady: () => void;
   onError?: (error: unknown) => void;
+  onNetwork?: (network: any) => void;
+  onClusterSelect?: (group: string) => void;
 }> = (props) => {
   let container: HTMLDivElement;
   let network: any;
+  let degreeMap = new Map<string, number>();
   const [raw, setRaw] = createSignal<GraphData | null>(null);
   const [colored, setColored] = createSignal<GraphData | null>(null);
   const [empty, setEmpty] = createSignal(false);
+
+  const makeTooltip = (n: GraphNode, degree: number) => {
+    const tip = document.createElement("div");
+    tip.className = "node-tip";
+    const head = document.createElement("div");
+    head.className = "tip-head";
+    head.textContent = n.id;
+    const meta = document.createElement("div");
+    meta.className = "tip-meta";
+    meta.textContent = `${n.type} · ${n.group} · ${degree} edges`;
+    tip.append(head, meta);
+    if (n.title) {
+      const p = document.createElement("p");
+      p.className = "tip-desc";
+      p.textContent = n.title;
+      tip.append(p);
+    }
+    return tip;
+  };
 
   onMount(async () => {
     try {
@@ -52,19 +76,21 @@ export const Graph: Component<{
       setRaw(data);
       props.onData(data);
 
-      const degree = new Map(data.nodes.map((n) => [n.id, 0]));
+      degreeMap = new Map(data.nodes.map((n) => [n.id, 0]));
       data.edges.forEach((e) => {
-        degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
-        degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+        degreeMap.set(e.from, (degreeMap.get(e.from) ?? 0) + 1);
+        degreeMap.set(e.to, (degreeMap.get(e.to) ?? 0) + 1);
       });
 
       const nodes = data.nodes.map((n) => ({
         ...n,
+        desc: n.title,
+        title: makeTooltip(n, degreeMap.get(n.id) ?? 0),
         color: groupColors[n.group] || groupColors.default,
-        value: degree.get(n.id) ?? 0,
+        value: degreeMap.get(n.id) ?? 0,
         shape: n.type === "mcp" ? "diamond" : n.type === "rule" ? "star" : n.type === "subagent" ? "triangle" : "dot",
       }));
-      setColored({ nodes, edges: data.edges });
+      setColored({ nodes: nodes as any, edges: data.edges });
 
       const fontColor = props.dark ? "#e2e8f0" : "#1e293b";
 
@@ -87,8 +113,13 @@ export const Graph: Component<{
         physics: { enabled: props.physics, stabilization: { iterations: 80 } },
         interaction: { hover: true, tooltipDelay: 200 },
       });
+      props.onNetwork?.(network);
       network.on("selectNode", () => {
         const id = network.getSelectedNodes()[0];
+        if (typeof id === "string" && id.startsWith("cluster:")) {
+          props.onClusterSelect?.(id.slice(8));
+          return;
+        }
         const node = data.nodes.find((n) => n.id === id);
         if (!node) return;
         const incoming = data.edges.filter((e) => e.to === id).length;
@@ -124,12 +155,15 @@ export const Graph: Component<{
     const q = props.search.toLowerCase().trim();
     const p = props.prefix;
     const tf = props.typeFilter;
-    const visible = colored()!.nodes.filter((n) => {
-      const matchSearch = !q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q);
+    let visible = colored()!.nodes.filter((n) => {
+      const matchSearch = !q || n.id.toLowerCase().includes(q) || ((n as any).desc ?? "").toLowerCase().includes(q);
       const matchPrefix = p === "all" || n.group === p;
       const matchType = tf === "all" || n.type === tf;
       return matchSearch && matchPrefix && matchType;
     });
+    if (props.hideIsolated) {
+      visible = visible.filter((n) => (degreeMap.get(n.id) ?? 0) > 0);
+    }
     const ids = new Set(visible.map((n) => n.id));
     const groupById = new Map(visible.map((n) => [n.id, n.group]));
 
@@ -161,9 +195,46 @@ export const Graph: Component<{
 
     setEmpty(visible.length === 0 && (q !== "" || p !== "all"));
 
+    let nodeList: any[] = styled;
+    let edgeList: any[] = visibleEdges;
+    if (props.clusterMode) {
+      const byGroup = new Map<string, any[]>();
+      for (const n of styled) {
+        const arr = byGroup.get(n.group) ?? [];
+        arr.push(n);
+        byGroup.set(n.group, arr);
+      }
+      const clusterOf = new Map<string, string>();
+      nodeList = [...byGroup.entries()].map(([g, arr]) => {
+        for (const n of arr) clusterOf.set(n.id, `cluster:${g}`);
+        return {
+          id: `cluster:${g}`,
+          label: `${g} (${arr.length})`,
+          title: `${arr.length} ${g} nodes — click to drill down`,
+          group: g,
+          color: groupColors[g] || groupColors.default,
+          value: arr.length,
+          shape: "hexagon",
+          size: Math.min(32, 10 + arr.length),
+          opacity: arr[0].opacity ?? 1,
+        };
+      });
+      const seen = new Set<string>();
+      edgeList = [];
+      for (const e of visibleEdges) {
+        const f = clusterOf.get(e.from)!;
+        const t = clusterOf.get(e.to)!;
+        if (f === t) continue;
+        const key = `${f}->${t}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        edgeList.push({ ...e, from: f, to: t });
+      }
+    }
+
     network.setData({
-      nodes: new window.vis.DataSet(styled),
-      edges: new window.vis.DataSet(visibleEdges),
+      nodes: new window.vis.DataSet(nodeList),
+      edges: new window.vis.DataSet(edgeList),
     });
   });
 

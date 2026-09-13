@@ -1,8 +1,8 @@
-import { For, Show, type Component } from "solid-js";
+import { For, Show, type Accessor, type Component } from "solid-js";
 import { groupColors, type GraphNode, type SelectedNode } from "../Graph";
 
 export const DetailPanel: Component<{
-  selected: SelectedNode | null;
+  selected: Accessor<SelectedNode | null>;
   incoming: GraphNode[];
   outgoing: GraphNode[];
   onFocus: () => void;
@@ -18,13 +18,16 @@ export const DetailPanel: Component<{
           <span class="group-badge" style={{ "background-color": (groupColors[props.selected()!.group] || groupColors.default).background }}>
             {props.selected()!.group}
           </span>
+          <span class="type-badge">{props.selected()!.type}</span>
         </div>
         <p class="desc">{props.selected()!.title}</p>
         <p class="meta">{props.selected()!.incoming} incoming · {props.selected()!.outgoing} outgoing</p>
+        <p class="meta dir-path">{props.selected()!.dir}</p>
         <div class="controls small">
           <button onClick={props.onFocus}>focus</button>
           <button onClick={props.onClear}>clear</button>
-          <button onClick={() => navigator.clipboard?.writeText?.(props.selected()!.id)}>copy</button>
+          <button title="Copy node id" onClick={() => navigator.clipboard?.writeText?.(props.selected()!.id)}>copy</button>
+          <button title="Copy /skill invocation" onClick={() => navigator.clipboard?.writeText?.(`/${props.selected()!.id}`)}>copy /</button>
           <button onClick={() => props.onOpenInVSCode(props.selected()!.dir)}>open</button>
         </div>
         <Show when={props.outgoing.length > 0}>

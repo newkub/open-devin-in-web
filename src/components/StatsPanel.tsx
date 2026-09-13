@@ -1,5 +1,6 @@
 import { For, Show, type Component } from "solid-js";
 import { groupColors, type GraphData } from "../Graph";
+import { Collapsible } from "./Collapsible";
 
 type Stats = {
   isolated: number;
@@ -14,8 +15,7 @@ export const StatsPanel: Component<{
 }> = (props) => {
   return (
     <Show when={props.stats}>
-      <div class="section">
-        <h4>stats</h4>
+      <Collapsible title="stats" open>
         <div class="stat-grid">
           <div>
             <div class="stat-value">{props.counts.nodes}</div>
@@ -54,7 +54,7 @@ export const StatsPanel: Component<{
             )}
           </For>
         </ul>
-      </div>
+      </Collapsible>
     </Show>
   );
 };

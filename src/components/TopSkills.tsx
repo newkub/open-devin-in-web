@@ -1,5 +1,6 @@
 import { For, type Component } from "solid-js";
 import type { GraphData, GraphNode } from "../Graph";
+import { Collapsible } from "./Collapsible";
 
 type TopItem = { id: string; count: number; node: GraphNode };
 
@@ -9,8 +10,7 @@ export const TopSkills: Component<{
   onSelect: (node: GraphNode, incoming: number, outgoing: number) => void;
 }> = (props) => {
   return (
-    <div class="section">
-      <h4>top skills</h4>
+    <Collapsible title="top skills" open>
       <ul class="top-list">
         <For each={props.topSkills}>
           {(item) => (
@@ -29,6 +29,6 @@ export const TopSkills: Component<{
           )}
         </For>
       </ul>
-    </div>
+    </Collapsible>
   );
 };

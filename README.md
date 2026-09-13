@@ -17,7 +17,7 @@ Interactive web graph visualizing Devin global skills, subagents, MCP servers, a
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  [skills]   [subagents]   [mcp]   [rules]          │  │
 │  │                                                    │  │
-│  │       o─── follow-architecture                     │  │
+│  │       o─── review-architecture                     │  │
 │  │       │                                            │  │
 │  │       o─── update-readme      o─── graph-renderer  │  │
 │  │       │                       │                    │  │
@@ -75,7 +75,7 @@ Open `http://localhost:5173`. Use search to filter nodes, click a node to see de
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  [skills]   [subagents]   [mcp]   [rules]          │  │
 │  │                                                    │  │
-│  │       o─── follow-architecture                     │  │
+│  │       o─── review-architecture                     │  │
 │  │       │                                            │  │
 │  │       o─── update-readme      o─── graph-renderer  │  │
 │  │       │                       │                    │  │
