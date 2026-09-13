@@ -306,6 +306,45 @@
   z-index: 30;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   pointer-events: none;
+  animation: toast-in 0.18s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes detail-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-float > * {
+  animation: detail-in 0.15s ease-out;
+}
+
+/* thin scrollbars */
+.sidebar::-webkit-scrollbar,
+.top-list::-webkit-scrollbar,
+.related-list::-webkit-scrollbar,
+.search-results::-webkit-scrollbar,
+.detail-float::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar::-webkit-scrollbar-thumb,
+.top-list::-webkit-scrollbar-thumb,
+.related-list::-webkit-scrollbar-thumb,
+.search-results::-webkit-scrollbar-thumb,
+.detail-float::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-track,
+.top-list::-webkit-scrollbar-track,
+.related-list::-webkit-scrollbar-track,
+.search-results::-webkit-scrollbar-track,
+.detail-float::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* floating detail card */

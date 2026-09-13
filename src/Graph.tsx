@@ -54,6 +54,7 @@ export const Graph: Component<{
   onNetwork?: (network: any) => void;
   onClusterSelect?: (group: string) => void;
   onDoubleClick?: (node: GraphNode) => void;
+  onPhysicsSettled?: () => void;
 }> = (props) => {
   let container: HTMLDivElement;
   let network: any;
@@ -62,6 +63,8 @@ export const Graph: Component<{
   const [colored, setColored] = createSignal<GraphData | null>(null);
   const [empty, setEmpty] = createSignal(false);
   const [netReady, setNetReady] = createSignal(false);
+  const [hoverId, setHoverId] = createSignal<string | null>(null);
+  const [labelsHidden, setLabelsHidden] = createSignal(false);
 
   const makeTooltip = (n: GraphNode, degree: number) => {
     const tip = document.createElement("div");
@@ -123,7 +126,7 @@ export const Graph: Component<{
 
       const ds = {
         nodes: new window.vis.DataSet(nodes),
-        edges: new window.vis.DataSet(data.edges),
+        edges: new window.vis.DataSet(data.edges.map((e, i) => ({ ...e, id: `e${i}` }))),
       };
       network = new window.vis.Network(container, ds, {
         nodes: {
@@ -137,15 +140,16 @@ export const Graph: Component<{
           width: 0.6,
           color: { opacity: 0.35 },
           smooth: false,
+          hoverWidth: 1.5,
         },
         layout: { improvedLayout: false },
         physics: {
           enabled: props.physics,
           solver: "forceAtlas2Based",
           forceAtlas2Based: { gravitationalConstant: -60, springLength: 120, damping: 0.6 },
-          stabilization: { iterations: 150, updateInterval: 25 },
+          stabilization: { iterations: 150, updateInterval: 50 },
         },
-        interaction: { hover: true, tooltipDelay: 200, hideEdgesOnDrag: true, hideEdgesOnZoom: true },
+        interaction: { hover: true, tooltipDelay: 200, hideEdgesOnDrag: true, hideEdgesOnZoom: true, selectConnectedEdges: true },
       });
       props.onNetwork?.(network);
       (window as any).__net = network;
@@ -175,6 +179,15 @@ export const Graph: Component<{
         const updates = params.nodes.map((id: string) => ({ id, fixed: { x: true, y: true } }));
         network.body.data.nodes.update(updates);
       });
+      network.on("hoverNode", (params: any) => setHoverId(params.node));
+      network.on("blurNode", () => setHoverId(null));
+      network.on("zoom", () => {
+        setLabelsHidden(network.getScale() < 0.45);
+      });
+      network.on("afterDrawing", () => {
+        const hidden = network.getScale() < 0.45;
+        if (hidden !== labelsHidden()) setLabelsHidden(hidden);
+      });
 
       let ready = false;
       const markReady = () => {
@@ -182,7 +195,11 @@ export const Graph: Component<{
         ready = true;
         props.onReady();
       };
-      network.on("stabilizationIterationsDone", markReady);
+      const settle = () => {
+        network.setOptions({ physics: { enabled: false } });
+        props.onPhysicsSettled?.();
+      };
+      network.on("stabilizationIterationsDone", () => { settle(); markReady(); });
       network.on("afterDrawing", markReady);
     } catch (err) {
       props.onError?.(err);
@@ -220,7 +237,7 @@ export const Graph: Component<{
     const ids = new Set(visible.map((n) => n.id));
     const groupById = new Map(visible.map((n) => [n.id, n.group]));
 
-    const h = props.highlight;
+    const h = props.highlight || hoverId();
     const hVisible = h ? ids.has(h) : false;
     const neighborIds = new Set<string>();
     if (hVisible) {
@@ -230,27 +247,15 @@ export const Graph: Component<{
       });
     }
 
-    const styled = visible.map((n) => {
-      if (!hVisible) return n;
-      if (n.id === h) return { ...n, size: 16, opacity: 1 };
-      if (neighborIds.has(n.id)) return { ...n, opacity: 1 };
-      return { ...n, opacity: 0.25 };
-    });
-
-    const visibleEdges = raw()!
-      .edges
-      .filter((e) => ids.has(e.from) && ids.has(e.to))
-      .map((e) => {
-        const g = groupById.get(e.from) || "default";
-        const c = groupColors[g] || groupColors.default;
-        return { ...e, color: { color: c.border, opacity: 0.35 }, width: 0.6 };
-      });
-
     setEmpty(visible.length === 0 && (q !== "" || p !== "all"));
 
-    let nodeList: any[] = styled;
-    let edgeList: any[] = visibleEdges;
     if (props.clusterMode) {
+      const styled = visible.map((n) => {
+        if (!hVisible) return n;
+        if (n.id === h) return { ...n, size: 16, opacity: 1 };
+        if (neighborIds.has(n.id)) return { ...n, opacity: 1 };
+        return { ...n, opacity: 0.25 };
+      });
       const byGroup = new Map<string, any[]>();
       for (const n of styled) {
         const arr = byGroup.get(n.group) ?? [];
@@ -258,7 +263,7 @@ export const Graph: Component<{
         byGroup.set(n.group, arr);
       }
       const clusterOf = new Map<string, string>();
-      nodeList = [...byGroup.entries()].map(([g, arr]) => {
+      const nodeList = [...byGroup.entries()].map(([g, arr]) => {
         for (const n of arr) clusterOf.set(n.id, `cluster:${g}`);
         return {
           id: `cluster:${g}`,
@@ -272,8 +277,9 @@ export const Graph: Component<{
           opacity: arr[0].opacity ?? 1,
         };
       });
+      const visibleEdges = raw()!.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
       const seen = new Set<string>();
-      edgeList = [];
+      const edgeList: any[] = [];
       for (const e of visibleEdges) {
         const f = clusterOf.get(e.from)!;
         const t = clusterOf.get(e.to)!;
@@ -283,19 +289,46 @@ export const Graph: Component<{
         seen.add(key);
         edgeList.push({ ...e, from: f, to: t });
       }
+      network.setData({
+        nodes: new window.vis.DataSet(nodeList),
+        edges: new window.vis.DataSet(edgeList),
+      });
+      network.stabilize(60);
+      return;
     }
 
-    network.setData({
-      nodes: new window.vis.DataSet(nodeList),
-      edges: new window.vis.DataSet(edgeList),
-    });
+    const nodesDs = network.body.data.nodes;
+    const edgesDs = network.body.data.edges;
+    if (nodesDs.length !== colored()!.nodes.length) {
+      nodesDs.clear();
+      nodesDs.add(colored()!.nodes);
+    }
+    nodesDs.update(colored()!.nodes.map((n) => ({
+      id: n.id,
+      hidden: !ids.has(n.id),
+      opacity: hVisible && ids.has(n.id) ? (n.id === h || neighborIds.has(n.id) ? 1 : 0.15) : 1,
+    })));
+    if (edgesDs.length !== raw()!.edges.length) {
+      edgesDs.clear();
+      edgesDs.add(raw()!.edges.map((e, i) => ({ ...e, id: `e${i}` })));
+    }
+    edgesDs.update(raw()!.edges.map((e, i) => {
+      const edgeVisible = ids.has(e.from) && ids.has(e.to);
+      const connected = hVisible && (e.from === h || e.to === h);
+      return {
+        id: `e${i}`,
+        hidden: !edgeVisible,
+        color: { color: (groupColors[groupById.get(e.from) || "default"] || groupColors.default).border, opacity: connected ? 0.9 : 0.35 },
+        width: connected ? 1.4 : 0.6,
+      };
+    }));
   });
 
   createEffect(() => {
     if (!netReady()) return;
     const fontColor = props.dark ? "#e2e8f0" : "#1e293b";
     network.setOptions({
-      nodes: { font: { color: fontColor, size: props.showLabels ? 11 : 0 } },
+      nodes: { font: { color: fontColor, size: props.showLabels && !labelsHidden() ? 11 : 0 } },
     });
   });
 

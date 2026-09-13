@@ -428,6 +428,7 @@ export function GraphPage() {
           onNetwork={(n) => (networkRef = n)}
           onClusterSelect={onClusterSelect}
           onDoubleClick={(node) => openInVSCode(node)}
+          onPhysicsSettled={() => setPhysics(false)}
         />
       </main>
     </div>
