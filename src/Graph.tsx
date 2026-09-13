@@ -93,8 +93,20 @@ export const Graph: Component<{
   };
 
   onMount(async () => {
+    const fetchWithRetry = async (attempts = 4): Promise<GraphData> => {
+      let lastErr: unknown;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          return await orpc.skillsGraph();
+        } catch (err) {
+          lastErr = err;
+          if (i < attempts - 1) await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+        }
+      }
+      throw lastErr;
+    };
     try {
-      const data = await orpc.skillsGraph();
+      const data = await fetchWithRetry();
       setRaw(data);
       props.onData(data);
 
