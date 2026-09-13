@@ -3,3 +3,5 @@ dist
 bun.lock
 .cache
 scanner/target
+test-results
+playwright-report

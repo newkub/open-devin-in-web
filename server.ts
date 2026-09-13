@@ -5,6 +5,7 @@ import { router } from "./src/orpc/router";
 const handler = new RPCHandler(router, {});
 
 const app = new Elysia()
+  .get("/health", () => ({ ok: true }))
   .all(
     "/rpc*",
     async ({ request }: { request: Request }) => {
