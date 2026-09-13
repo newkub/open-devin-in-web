@@ -27,6 +27,7 @@ export function GraphPage() {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
+  const [searchFocused, setSearchFocused] = createSignal(false);
 
   const [dark, setDark] = persisted("theme", true);
   const [prefix, setPrefix] = persisted("prefix", "all");
@@ -312,19 +313,21 @@ export function GraphPage() {
               aria-label="Search skills"
               title="Press / to focus, Enter to select first match, Esc to clear"
               value={search()}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               onInput={(e) => setSearch(e.currentTarget.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && searchMatches()[0]) selectById(searchMatches()[0].id);
+                if (e.key === "Enter" && searchMatches()[0]) { selectById(searchMatches()[0].id); e.currentTarget.blur(); }
                 if (e.key === "Escape") { setSearch(""); e.currentTarget.blur(); }
               }}
             />
-            <Show when={search().trim()}>
+            <Show when={search().trim() && searchFocused()}>
               <div class="search-meta">{searchMatches().length} matches</div>
               <Show when={searchMatches().length > 0}>
                 <ul class="search-results">
                   <For each={searchMatches().slice(0, 8)}>
                     {(m) => (
-                      <li role="button" tabIndex={0} onClick={() => selectById(m.id)} onKeyDown={(e) => e.key === "Enter" && selectById(m.id)}>
+                      <li role="button" tabIndex={0} onMouseDown={(e) => { e.preventDefault(); selectById(m.id); (document.activeElement as HTMLElement)?.blur?.(); }} onKeyDown={(e) => e.key === "Enter" && selectById(m.id)}>
                         <span class="related-dot" style={{ "background-color": (groupColors[m.group] || groupColors.default).background }} />
                         <span class="sr-id">{m.id}</span>
                         <span class="sr-type">{m.type}</span>
