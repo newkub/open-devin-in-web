@@ -73,9 +73,9 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 - `SolidJS: /follow-lib-solidjs`
 - `Vite: /follow-tool-vite`
 - `UnoCSS: /follow-lib-unocss`
-- `Elysia: /learn-web`
-- `oRPC: /learn-web`
-- `vis-network: /learn-web`
+- `Elysia: /learn (web)`
+- `oRPC: /learn (web)`
+- `vis-network: /learn (web)`
 
 ### 4. Scripts
 
@@ -102,4 +102,5 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 - `AGENTS.md` ถูกต้องตาม architecture
 - tech stack mapping ครบ
 - ผ่าน `/deep-validate`
+
 
