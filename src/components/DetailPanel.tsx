@@ -1,12 +1,14 @@
 import { For, Show, type Accessor, type Component } from "solid-js";
-import { groupColors, type GraphNode, type SelectedNode } from "../Graph";
+import { groupColors, severityColors, type GraphNode, type SelectedNode } from "../Graph";
 
 export const DetailPanel: Component<{
   selected: Accessor<SelectedNode | null>;
   incoming: GraphNode[];
   outgoing: GraphNode[];
+  egoActive: boolean;
   onFocus: () => void;
   onClear: () => void;
+  onEgo: () => void;
   onSelectById: (id: string) => void;
   onOpenInVSCode: (dir: string) => void;
 }> = (props) => {
@@ -25,11 +27,29 @@ export const DetailPanel: Component<{
         <p class="meta dir-path">{props.selected()!.dir}</p>
         <div class="controls small">
           <button onClick={props.onFocus}>focus</button>
+          <button classList={{ active: props.egoActive }} title="Show only this node and its neighbors" onClick={props.onEgo}>ego net</button>
           <button onClick={props.onClear}>clear</button>
           <button title="Copy node id" onClick={() => navigator.clipboard?.writeText?.(props.selected()!.id)}>copy</button>
           <button title="Copy /skill invocation" onClick={() => navigator.clipboard?.writeText?.(`/${props.selected()!.id}`)}>copy /</button>
           <button onClick={() => props.onOpenInVSCode(props.selected()!.dir)}>open</button>
         </div>
+        <Show when={(props.selected()!.issues?.length ?? 0) > 0}>
+          <div class="related-section">
+            <h5>review issues ({props.selected()!.issues!.length})</h5>
+            <ul class="issue-list">
+              <For each={props.selected()!.issues}>
+                {(issue) => (
+                  <li>
+                    <span class="sev-chip" style={{ "background-color": severityColors[issue.severity] ?? severityColors.Info }}>
+                      {issue.severity}
+                    </span>
+                    <span class="issue-text">{issue.finding}{issue.line ? ` :${issue.line}` : ""}</span>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </div>
+        </Show>
         <Show when={props.outgoing.length > 0}>
           <div class="related-section">
             <h5>uses</h5>

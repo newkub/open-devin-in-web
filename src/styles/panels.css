@@ -331,3 +331,85 @@ button [class^="i-mdi-"] {
   font-size: 0.85rem;
   line-height: 1.4;
 }
+
+.node-tip .tip-health {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* review health */
+.review-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: var(--input);
+  border-radius: 8px;
+}
+
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--muted);
+}
+
+.grade-a { background: #22c55e; }
+.grade-b { background: #eab308; }
+.grade-c, .grade-d { background: #ea580c; }
+.grade-f { background: #dc2626; }
+
+.review-detail {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.issue-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.issue-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: var(--input);
+  font-size: 0.8rem;
+}
+
+.sev-chip {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.sev-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.issue-text {
+  color: var(--muted);
+  word-break: break-word;
+}

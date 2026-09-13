@@ -12,10 +12,19 @@ export const StatsPanel: Component<{
   counts: { nodes: number; edges: number };
   stats: Stats | null;
   groups: string[];
+  review?: GraphData["review"];
 }> = (props) => {
   return (
     <Show when={props.stats}>
       <Collapsible title="stats" open>
+        <Show when={props.review}>
+          <div class="review-score">
+            <span class={`grade-badge grade-${props.review!.grade.toLowerCase()}`}>{props.review!.grade}</span>
+            <span class="review-detail">
+              score {props.review!.score} · {props.review!.totalFindings} findings · {props.review!.totalObservations} observations
+            </span>
+          </div>
+        </Show>
         <div class="stat-grid">
           <div>
             <div class="stat-value">{props.counts.nodes}</div>

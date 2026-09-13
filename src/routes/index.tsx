@@ -1,5 +1,5 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { Graph, groupColors, type GraphData, type GraphNode, type SelectedNode } from "../Graph";
+import { Graph, groupColors, severityColors, type GraphData, type GraphNode, type SelectedNode } from "../Graph";
 import { StatsPanel } from "../components/StatsPanel";
 import { Collapsible } from "../components/Collapsible";
 import { LegendPanel } from "../components/LegendPanel";
@@ -33,7 +33,9 @@ export function GraphPage() {
   const [typeFilter, setTypeFilter] = persisted("type", "all");
   const [showLabels, setShowLabels] = persisted("labels", true);
   const [hideIsolated, setHideIsolated] = persisted("hide-isolated", false);
+  const [issuesOnly, setIssuesOnly] = persisted("issues-only", false);
   const [sidebarOpen, setSidebarOpen] = persisted("sidebar", true);
+  const [ego, setEgo] = createSignal<string | null>(null);
   const [physics, setPhysics] = createSignal(true);
   const [clusterMode, setClusterMode] = createSignal(false);
   const [reset, setReset] = createSignal(0);
@@ -110,7 +112,26 @@ export function GraphPage() {
       (tf === "all" || n.type === tf)
     );
     if (hideIsolated()) list = list.filter((n) => (deg.get(n.id) ?? 0) > 0);
+    if (issuesOnly()) list = list.filter((n) => (n.findings ?? 0) > 0 || (n.observations ?? 0) > 0);
+    if (ego()) {
+      const keep = new Set([ego()!]);
+      for (const e of data.edges) {
+        if (e.from === ego()) keep.add(e.to);
+        if (e.to === ego()) keep.add(e.from);
+      }
+      list = list.filter((n) => keep.has(n.id));
+    }
     return list.length;
+  });
+
+  const issueNodes = createMemo(() => {
+    const data = graphData();
+    if (!data) return [] as GraphNode[];
+    const order = ["Critical", "High", "Medium", "Low", "Info"];
+    return data.nodes
+      .filter((n) => (n.findings ?? 0) > 0 || (n.observations ?? 0) > 0)
+      .sort((a, b) => order.indexOf(a.maxSeverity ?? "Info") - order.indexOf(b.maxSeverity ?? "Info")
+        || (b.findings ?? 0) + (b.observations ?? 0) - ((a.findings ?? 0) + (a.observations ?? 0)));
   });
 
   const topSkills = createMemo(() => {
@@ -196,6 +217,7 @@ export function GraphPage() {
     if (e.key === "i" || e.key === "I") setHideIsolated((v) => !v);
     if (e.key === "c" || e.key === "C") setClusterMode((v) => !v);
     if (e.key === "b" || e.key === "B") setSidebarOpen((v) => !v);
+    if (e.key === "h" || e.key === "H") setIssuesOnly((v) => !v);
     if (e.key === "/" || e.key === "s" || e.key === "S") {
       const el = document.getElementById("skill-search") as HTMLInputElement | null;
       el?.focus();
@@ -272,6 +294,9 @@ export function GraphPage() {
           <button classList={{ active: clusterMode() }} title="Group nodes into prefix clusters (C)" onClick={() => setClusterMode((v) => !v)}>
             <span class="i-mdi-hexagon-multiple" /> cluster
           </button>
+          <button classList={{ active: issuesOnly() }} title="Show only nodes with review findings/observations (H)" onClick={() => setIssuesOnly((v) => !v)}>
+            <span class="i-mdi-alert-circle-outline" /> issues
+          </button>
           <button title="Export graph as PNG" onClick={exportPng}>
             <span class="i-mdi-camera" /> png
           </button>
@@ -301,7 +326,22 @@ export function GraphPage() {
             </ul>
           </Collapsible>
         </Show>
-        <StatsPanel counts={counts()} stats={stats()} groups={groups()} />
+        <Show when={issueNodes().length > 0}>
+          <Collapsible title={`health (${issueNodes().length})`}>
+            <ul class="related-list">
+              <For each={issueNodes().slice(0, 20)}>
+                {(n) => (
+                  <li onClick={() => selectById(n.id)}>
+                    <span class="sev-dot" style={{ "background-color": severityColors[n.maxSeverity ?? "Info"] }} />
+                    <span class="sr-id">{n.id}</span>
+                    <span class="count">{(n.findings ?? 0) + (n.observations ?? 0)}</span>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Collapsible>
+        </Show>
+        <StatsPanel counts={counts()} stats={stats()} groups={groups()} review={graphData()?.review} />
         <LegendPanel groups={groups()} />
         <ShortcutsPanel />
         <div class="status">{visibleCount() ?? counts().nodes}/{counts().nodes} nodes · {counts().edges} edges</div>
@@ -320,8 +360,10 @@ export function GraphPage() {
               selected={selected}
               incoming={incoming()}
               outgoing={outgoing()}
+              egoActive={ego() !== null}
               onFocus={doFocus}
-              onClear={() => setSelected(null)}
+              onClear={() => { setSelected(null); setEgo(null); }}
+              onEgo={() => setEgo(ego() === selected()!.id ? null : selected()!.id)}
               onSelectById={selectById}
               onOpenInVSCode={openInVSCode}
             />
@@ -346,6 +388,8 @@ export function GraphPage() {
           physics={physics()}
           showLabels={showLabels()}
           hideIsolated={hideIsolated()}
+          issuesOnly={issuesOnly()}
+          ego={ego()}
           clusterMode={clusterMode()}
           reset={reset()}
           focus={focus()}

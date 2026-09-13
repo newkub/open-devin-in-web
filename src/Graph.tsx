@@ -6,6 +6,14 @@ export type { GraphData } from "./orpc/router";
 export type GraphNode = GraphData["nodes"][number];
 export type SelectedNode = GraphNode & { incoming: number; outgoing: number };
 
+export const severityColors: Record<string, string> = {
+  Critical: "#dc2626",
+  High: "#ea580c",
+  Medium: "#eab308",
+  Low: "#94a3b8",
+  Info: "#64748b",
+};
+
 export const groupColors: Record<string, { background: string; border: string }> = {
   follow: { background: "#6366f1", border: "#4f46e5" },
   run: { background: "#22c55e", border: "#16a34a" },
@@ -32,6 +40,8 @@ export const Graph: Component<{
   physics: boolean;
   showLabels: boolean;
   hideIsolated: boolean;
+  issuesOnly: boolean;
+  ego: string | null;
   clusterMode: boolean;
   reset: number;
   focus: string | null;
@@ -62,6 +72,13 @@ export const Graph: Component<{
     meta.className = "tip-meta";
     meta.textContent = `${n.type} · ${n.group} · ${degree} edges`;
     tip.append(head, meta);
+    if ((n.findings ?? 0) > 0 || (n.observations ?? 0) > 0) {
+      const health = document.createElement("div");
+      health.className = "tip-health";
+      health.textContent = `${n.maxSeverity} · ${n.findings ?? 0} findings · ${n.observations ?? 0} observations`;
+      health.style.color = severityColors[n.maxSeverity ?? "Info"];
+      tip.append(health);
+    }
     if (n.title) {
       const p = document.createElement("p");
       p.className = "tip-desc";
@@ -83,14 +100,22 @@ export const Graph: Component<{
         degreeMap.set(e.to, (degreeMap.get(e.to) ?? 0) + 1);
       });
 
-      const nodes = data.nodes.map((n) => ({
-        ...n,
-        desc: n.title,
-        title: makeTooltip(n, degreeMap.get(n.id) ?? 0),
-        color: groupColors[n.group] || groupColors.default,
-        value: degreeMap.get(n.id) ?? 0,
-        shape: n.type === "mcp" ? "diamond" : n.type === "rule" ? "star" : n.type === "subagent" ? "triangle" : "dot",
-      }));
+      const nodes = data.nodes.map((n) => {
+        const base = groupColors[n.group] || groupColors.default;
+        const hasFindings = (n.findings ?? 0) > 0;
+        const hasObs = (n.observations ?? 0) > 0;
+        return {
+          ...n,
+          desc: n.title,
+          title: makeTooltip(n, degreeMap.get(n.id) ?? 0),
+          color: hasFindings || hasObs
+            ? { background: base.background, border: severityColors[n.maxSeverity ?? "Info"] ?? base.border }
+            : base,
+          borderWidth: hasFindings ? 4 : hasObs ? 3 : 2,
+          value: degreeMap.get(n.id) ?? 0,
+          shape: n.type === "mcp" ? "diamond" : n.type === "rule" ? "star" : n.type === "subagent" ? "triangle" : "dot",
+        };
+      });
       setColored({ nodes: nodes as any, edges: data.edges });
 
       const fontColor = props.dark ? "#e2e8f0" : "#1e293b";
@@ -169,6 +194,18 @@ export const Graph: Component<{
     });
     if (props.hideIsolated) {
       visible = visible.filter((n) => (degreeMap.get(n.id) ?? 0) > 0);
+    }
+    if (props.issuesOnly) {
+      visible = visible.filter((n) => (n.findings ?? 0) > 0 || (n.observations ?? 0) > 0);
+    }
+    if (props.ego) {
+      const egoId = props.ego;
+      const keep = new Set<string>([egoId]);
+      raw()!.edges.forEach((e) => {
+        if (e.from === egoId) keep.add(e.to);
+        if (e.to === egoId) keep.add(e.from);
+      });
+      visible = visible.filter((n) => keep.has(n.id));
     }
     const ids = new Set(visible.map((n) => n.id));
     const groupById = new Map(visible.map((n) => [n.id, n.group]));
