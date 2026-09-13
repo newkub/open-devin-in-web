@@ -262,8 +262,14 @@
   font-size: 0.85rem;
 }
 
-.search-results li:hover {
+.search-results li:hover,
+.search-results li.sr-active {
   background: var(--input);
+}
+
+.search-results li.sr-active {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .sr-id {

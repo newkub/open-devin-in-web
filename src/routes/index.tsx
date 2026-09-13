@@ -28,6 +28,7 @@ export function GraphPage() {
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
   const [searchFocused, setSearchFocused] = createSignal(false);
+  const [searchIdx, setSearchIdx] = createSignal(0);
 
   const [dark, setDark] = persisted("theme", true);
   const [prefix, setPrefix] = persisted("prefix", "all");
@@ -315,10 +316,13 @@ export function GraphPage() {
               value={search()}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              onInput={(e) => setSearch(e.currentTarget.value)}
+              onInput={(e) => { setSearch(e.currentTarget.value); setSearchIdx(0); }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && searchMatches()[0]) { selectById(searchMatches()[0].id); e.currentTarget.blur(); }
-                if (e.key === "Escape") { setSearch(""); e.currentTarget.blur(); }
+                const matches = searchMatches().slice(0, 8);
+                if (e.key === "ArrowDown") { e.preventDefault(); setSearchIdx((i) => Math.min(i + 1, matches.length - 1)); }
+                if (e.key === "ArrowUp") { e.preventDefault(); setSearchIdx((i) => Math.max(i - 1, 0)); }
+                if (e.key === "Enter" && matches[searchIdx()]) { selectById(matches[searchIdx()].id); e.currentTarget.blur(); }
+                if (e.key === "Escape") { setSearch(""); setSearchIdx(0); e.currentTarget.blur(); }
               }}
             />
             <Show when={search().trim() && searchFocused()}>
@@ -326,8 +330,8 @@ export function GraphPage() {
               <Show when={searchMatches().length > 0}>
                 <ul class="search-results">
                   <For each={searchMatches().slice(0, 8)}>
-                    {(m) => (
-                      <li role="button" tabIndex={0} onMouseDown={(e) => { e.preventDefault(); selectById(m.id); (document.activeElement as HTMLElement)?.blur?.(); }} onKeyDown={(e) => e.key === "Enter" && selectById(m.id)}>
+                    {(m, i) => (
+                      <li role="button" tabIndex={0} classList={{ "sr-active": i() === searchIdx() }} ref={(el) => { if (i() === searchIdx()) el.scrollIntoView({ block: "nearest" }); }} onMouseDown={(e) => { e.preventDefault(); selectById(m.id); (document.activeElement as HTMLElement)?.blur?.(); }} onKeyDown={(e) => e.key === "Enter" && selectById(m.id)}>
                         <span class="related-dot" style={{ "background-color": (groupColors[m.group] || groupColors.default).background }} />
                         <span class="sr-id">{m.id}</span>
                         <span class="sr-type">{m.type}</span>
