@@ -7,31 +7,39 @@ import { ShortcutsPanel } from "../components/ShortcutsPanel";
 import { DetailPanel } from "../components/DetailPanel";
 import { TopSkills } from "../components/TopSkills";
 
+const persisted = <T,>(key: string, init: T) => {
+  const full = `open-devin-in-web-${key}`;
+  let start = init;
+  try {
+    const saved = localStorage.getItem(full);
+    if (saved !== null) start = JSON.parse(saved) as T;
+  } catch { }
+  const [sig, setSig] = createSignal<T>(start);
+  createEffect(() => {
+    try { localStorage.setItem(full, JSON.stringify(sig())); } catch { }
+  });
+  return [sig, setSig] as const;
+};
+
 export function GraphPage() {
   const [search, setSearch] = createSignal("");
-  const [prefix, setPrefix] = createSignal("all");
-  const [typeFilter, setTypeFilter] = createSignal("all");
   const [selected, setSelected] = createSignal<SelectedNode | null>(null);
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
 
-  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("open-devin-in-web-theme") : null;
-  const [dark, setDark] = createSignal(saved ? saved === "dark" : true);
+  const [dark, setDark] = persisted("theme", true);
+  const [prefix, setPrefix] = persisted("prefix", "all");
+  const [typeFilter, setTypeFilter] = persisted("type", "all");
+  const [showLabels, setShowLabels] = persisted("labels", true);
+  const [hideIsolated, setHideIsolated] = persisted("hide-isolated", false);
+  const [sidebarOpen, setSidebarOpen] = persisted("sidebar", true);
   const [physics, setPhysics] = createSignal(true);
-  const [showLabels, setShowLabels] = createSignal(true);
-  const [hideIsolated, setHideIsolated] = createSignal(false);
   const [clusterMode, setClusterMode] = createSignal(false);
   const [reset, setReset] = createSignal(0);
   const [focus, setFocus] = createSignal<string | null>(null);
   const [zoom, setZoom] = createSignal<{ dir: "in" | "out" } | null>(null);
   let networkRef: any;
-
-  createEffect(() => {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("open-devin-in-web-theme", dark() ? "dark" : "light");
-    }
-  });
 
   const counts = createMemo(() =>
     graphData() ? { nodes: graphData()!.nodes.length, edges: graphData()!.edges.length } : { nodes: 0, edges: 0 }
@@ -87,6 +95,22 @@ export function GraphPage() {
     if (!data) return [] as GraphNode[];
     const deg = degreeMap();
     return data.nodes.filter((n) => (deg.get(n.id) ?? 0) === 0);
+  });
+
+  const visibleCount = createMemo(() => {
+    const data = graphData();
+    if (!data) return null;
+    const q = search().toLowerCase().trim();
+    const p = prefix();
+    const tf = typeFilter();
+    const deg = degreeMap();
+    let list = data.nodes.filter((n) =>
+      (!q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q)) &&
+      (p === "all" || n.group === p) &&
+      (tf === "all" || n.type === tf)
+    );
+    if (hideIsolated()) list = list.filter((n) => (deg.get(n.id) ?? 0) > 0);
+    return list.length;
   });
 
   const topSkills = createMemo(() => {
@@ -171,6 +195,7 @@ export function GraphPage() {
     if (e.key === "l" || e.key === "L") setShowLabels((v) => !v);
     if (e.key === "i" || e.key === "I") setHideIsolated((v) => !v);
     if (e.key === "c" || e.key === "C") setClusterMode((v) => !v);
+    if (e.key === "b" || e.key === "B") setSidebarOpen((v) => !v);
     if (e.key === "/" || e.key === "s" || e.key === "S") {
       const el = document.getElementById("skill-search") as HTMLInputElement | null;
       el?.focus();
@@ -182,7 +207,7 @@ export function GraphPage() {
 
   return (
     <div class="app" classList={{ light: !dark() }}>
-      <aside class="sidebar">
+      <aside class="sidebar" classList={{ hide: !sidebarOpen() }}>
         <h1>Open Devin</h1>
         <div class="search-wrap">
           <span class="i-mdi-magnify search-icon" />
@@ -217,17 +242,17 @@ export function GraphPage() {
           </Show>
         </div>
         <select value={prefix()} onChange={(e) => setPrefix(e.currentTarget.value)} aria-label="Filter by prefix" title="Filter by skill prefix">
-          <option value="all">all prefixes</option>
+          <option value="all">all prefixes ({counts().nodes})</option>
           <For each={groups()}>
-            {(g) => <option value={g}>{g}</option>}
+            {(g) => <option value={g}>{g} ({stats()?.groupCounts[g] ?? 0})</option>}
           </For>
         </select>
         <select value={typeFilter()} onChange={(e) => setTypeFilter(e.currentTarget.value)} aria-label="Filter by type" title="Filter by resource type">
-          <option value="all">all types</option>
-          <option value="skill">skills</option>
-          <option value="subagent">subagents</option>
-          <option value="mcp">mcp servers</option>
-          <option value="rule">global rules</option>
+          <option value="all">all types ({counts().nodes})</option>
+          <option value="skill">skills ({stats()?.typeCounts["skill"] ?? 0})</option>
+          <option value="subagent">subagents ({stats()?.typeCounts["subagent"] ?? 0})</option>
+          <option value="mcp">mcp servers ({stats()?.typeCounts["mcp"] ?? 0})</option>
+          <option value="rule">global rules ({stats()?.typeCounts["rule"] ?? 0})</option>
         </select>
         <div class="controls">
           <button title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>
@@ -257,15 +282,6 @@ export function GraphPage() {
           <button title="Zoom in" onClick={() => setZoom({ dir: "in" })}><span class="i-mdi-plus" /></button>
           <button title="Jump to a random skill" onClick={doRandom}><span class="i-mdi-dice-5" /> random</button>
         </div>
-        <DetailPanel
-          selected={selected}
-          incoming={incoming()}
-          outgoing={outgoing()}
-          onFocus={doFocus}
-          onClear={() => setSelected(null)}
-          onSelectById={selectById}
-          onOpenInVSCode={openInVSCode}
-        />
         <TopSkills
           topSkills={topSkills()}
           graphData={graphData()}
@@ -288,9 +304,29 @@ export function GraphPage() {
         <StatsPanel counts={counts()} stats={stats()} groups={groups()} />
         <LegendPanel groups={groups()} />
         <ShortcutsPanel />
-        <div class="status">{counts().nodes} nodes · {counts().edges} edges</div>
+        <div class="status">{visibleCount() ?? counts().nodes}/{counts().nodes} nodes · {counts().edges} edges</div>
       </aside>
       <main class="canvas-wrap">
+        <button
+          class="sidebar-toggle"
+          title="Toggle sidebar (B)"
+          onClick={() => setSidebarOpen((v) => !v)}
+        >
+          <span class={sidebarOpen() ? "i-mdi-menu-open" : "i-mdi-menu"} />
+        </button>
+        <Show when={selected()}>
+          <div class="detail-float">
+            <DetailPanel
+              selected={selected}
+              incoming={incoming()}
+              outgoing={outgoing()}
+              onFocus={doFocus}
+              onClear={() => setSelected(null)}
+              onSelectById={selectById}
+              onOpenInVSCode={openInVSCode}
+            />
+          </div>
+        </Show>
         <Show when={loading()}>
           <div class="skeleton" />
           <div class="loading-message">{graphData() ? `rendering ${counts().nodes} nodes...` : "loading skills..."}</div>
@@ -321,6 +357,7 @@ export function GraphPage() {
           onError={(e) => { setLoading(false); setError(String(e)); }}
           onNetwork={(n) => (networkRef = n)}
           onClusterSelect={onClusterSelect}
+          onDoubleClick={(node) => openInVSCode(node.dir)}
         />
       </main>
     </div>

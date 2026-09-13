@@ -15,6 +15,8 @@ export const ShortcutsPanel: Component = () => {
         <li><kbd>l</kbd> <span>toggle labels</span></li>
         <li><kbd>i</kbd> <span>toggle isolated</span></li>
         <li><kbd>c</kbd> <span>toggle clusters</span></li>
+        <li><kbd>b</kbd> <span>toggle sidebar</span></li>
+        <li><kbd>dblclick</kbd> <span>open file</span></li>
       </ul>
     </Collapsible>
   );

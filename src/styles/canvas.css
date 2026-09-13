@@ -194,3 +194,44 @@
 .light .empty-overlay {
   background: rgba(248, 250, 252, 0.85);
 }
+
+/* floating detail card + sidebar toggle */
+.detail-float {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 320px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  z-index: 20;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.detail-float .detail {
+  margin-top: 0;
+  background: transparent;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  padding: 6px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+}
+
+.sidebar-toggle:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.sidebar.hide {
+  display: none;
+}

@@ -43,6 +43,7 @@ export const Graph: Component<{
   onError?: (error: unknown) => void;
   onNetwork?: (network: any) => void;
   onClusterSelect?: (group: string) => void;
+  onDoubleClick?: (node: GraphNode) => void;
 }> = (props) => {
   let container: HTMLDivElement;
   let network: any;
@@ -127,6 +128,11 @@ export const Graph: Component<{
         props.onSelect({ ...node, incoming, outgoing });
       });
       network.on("deselectNode", () => props.onSelect(null));
+      network.on("doubleClick", (params: any) => {
+        const id = params.nodes?.[0];
+        const node = data.nodes.find((n) => n.id === id);
+        if (node) props.onDoubleClick?.(node);
+      });
       network.on("click", (params: any) => {
         if (params.nodes.length === 0) props.onSelect(null);
       });
