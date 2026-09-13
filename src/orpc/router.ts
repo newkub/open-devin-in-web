@@ -7,7 +7,17 @@ const SKILLS_ROOT = Bun.env.SKILLS_ROOT ?? "C:\\Users\\Veerapong\\AppData\\Roami
 const AGENTS_ROOT = Bun.env.AGENTS_ROOT ?? join(HOME_DIR, ".config", "devin", "agents");
 const MCP_CONFIG = Bun.env.MCP_CONFIG ?? join(SKILLS_ROOT, ".devin", "config.json");
 const GLOBAL_RULES = Bun.env.GLOBAL_RULES ?? join(HOME_DIR, ".codeium", "windsurf", "memories", "global_rules.md");
-const REVIEW_REPORT = Bun.env.REVIEW_REPORT ?? join(SKILLS_ROOT, "review-devin-global-skills", "review-skills-report.json");
+const REVIEW_REPORT = Bun.env.REVIEW_REPORT ?? join(SKILLS_ROOT, "review-devin-global-harness", "review-skills-report.json");
+
+async function resolveReviewPath(): Promise<string | null> {
+  if (await Bun.file(REVIEW_REPORT).exists()) return REVIEW_REPORT;
+  try {
+    for (const m of new Bun.Glob("review-devin*/review-skills-report.json").scanSync(SKILLS_ROOT)) {
+      return join(SKILLS_ROOT, m);
+    }
+  } catch { }
+  return null;
+}
 
 type NodeType = "skill" | "subagent" | "mcp" | "rule";
 type NodeIssue = { severity: string; category: string; finding: string; line?: number; kind: "finding" | "observation" };
@@ -171,8 +181,9 @@ async function scanGlobalRules(): Promise<ScanResult> {
 const SEVERITY_ORDER = ["Critical", "High", "Medium", "Low", "Info"];
 
 async function loadReview(): Promise<{ meta: ReviewMeta; bySkill: Map<string, { findings: number; observations: number; maxSeverity: string; issues: NodeIssue[] }> } | null> {
-  const file = Bun.file(REVIEW_REPORT);
-  if (!(await file.exists())) return null;
+  const path = await resolveReviewPath();
+  if (!path) return null;
+  const file = Bun.file(path);
   try {
     const report = await file.json();
     const bySkill = new Map<string, { findings: number; observations: number; maxSeverity: string; issues: NodeIssue[] }>();

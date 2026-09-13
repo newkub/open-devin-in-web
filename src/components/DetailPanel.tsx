@@ -11,6 +11,7 @@ export const DetailPanel: Component<{
   onEgo: () => void;
   onSelectById: (id: string) => void;
   onOpenInVSCode: (node: GraphNode) => void;
+  onToast: (msg: string) => void;
 }> = (props) => {
   return (
     <Show when={props.selected}>
@@ -29,9 +30,9 @@ export const DetailPanel: Component<{
           <button onClick={props.onFocus}>focus</button>
           <button classList={{ active: props.egoActive }} title="Show only this node and its neighbors" onClick={props.onEgo}>ego net</button>
           <button onClick={props.onClear}>clear</button>
-          <button title="Copy node id" onClick={() => navigator.clipboard?.writeText?.(props.selected()!.id)}>copy</button>
+          <button title="Copy node id" onClick={() => { navigator.clipboard?.writeText?.(props.selected()!.id); props.onToast("copied id"); }}>copy</button>
           <Show when={props.selected()!.type === "skill"}>
-            <button title="Copy /skill invocation" onClick={() => navigator.clipboard?.writeText?.(`/${props.selected()!.id}`)}>copy /</button>
+            <button title="Copy /skill invocation" onClick={() => { navigator.clipboard?.writeText?.(`/${props.selected()!.id}`); props.onToast("copied /"); }}>copy /</button>
           </Show>
           <button title="Open file in VS Code" onClick={() => props.onOpenInVSCode(props.selected()!)}>open</button>
         </div>
@@ -58,7 +59,7 @@ export const DetailPanel: Component<{
             <ul class="related-list">
               <For each={props.outgoing}>
                 {(n) => (
-                  <li onClick={() => props.onSelectById(n.id)}>
+                  <li role="button" tabIndex={0} onClick={() => props.onSelectById(n.id)} onKeyDown={(e) => e.key === "Enter" && props.onSelectById(n.id)}>
                     <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
                     <span>{n.id}</span>
                   </li>
@@ -73,7 +74,7 @@ export const DetailPanel: Component<{
             <ul class="related-list">
               <For each={props.incoming}>
                 {(n) => (
-                  <li onClick={() => props.onSelectById(n.id)}>
+                  <li role="button" tabIndex={0} onClick={() => props.onSelectById(n.id)} onKeyDown={(e) => e.key === "Enter" && props.onSelectById(n.id)}>
                     <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
                     <span>{n.id}</span>
                   </li>

@@ -61,6 +61,7 @@ export const Graph: Component<{
   const [raw, setRaw] = createSignal<GraphData | null>(null);
   const [colored, setColored] = createSignal<GraphData | null>(null);
   const [empty, setEmpty] = createSignal(false);
+  const [netReady, setNetReady] = createSignal(false);
 
   const makeTooltip = (n: GraphNode, degree: number) => {
     const tip = document.createElement("div");
@@ -147,6 +148,8 @@ export const Graph: Component<{
         interaction: { hover: true, tooltipDelay: 200, hideEdgesOnDrag: true, hideEdgesOnZoom: true },
       });
       props.onNetwork?.(network);
+      (window as any).__net = network;
+      setNetReady(true);
       network.on("selectNode", () => {
         const id = network.getSelectedNodes()[0];
         if (typeof id === "string" && id.startsWith("cluster:")) {
@@ -189,7 +192,7 @@ export const Graph: Component<{
   onCleanup(() => network?.destroy());
 
   createEffect(() => {
-    if (!network || !colored() || !raw()) return;
+    if (!netReady() || !colored() || !raw()) return;
     const q = props.search.toLowerCase().trim();
     const p = props.prefix;
     const tf = props.typeFilter;
@@ -289,7 +292,7 @@ export const Graph: Component<{
   });
 
   createEffect(() => {
-    if (!network) return;
+    if (!netReady()) return;
     const fontColor = props.dark ? "#e2e8f0" : "#1e293b";
     network.setOptions({
       nodes: { font: { color: fontColor, size: props.showLabels ? 11 : 0 } },
@@ -297,23 +300,23 @@ export const Graph: Component<{
   });
 
   createEffect(() => {
-    if (!network) return;
+    if (!netReady()) return;
     network.setOptions({ physics: { enabled: props.physics } });
   });
 
   createEffect(() => {
-    if (!network) return;
+    if (!netReady()) return;
     props.reset;
     network.fit();
   });
 
   createEffect(() => {
-    if (!network || !props.focus) return;
+    if (!netReady() || !props.focus) return;
     network.focus(props.focus, { scale: 1.2, animation: true });
   });
 
   createEffect(() => {
-    if (!network) return;
+    if (!netReady()) return;
     const z = props.zoom();
     if (!z) return;
     const current = network.getScale() || 1;

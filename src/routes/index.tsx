@@ -42,6 +42,13 @@ export function GraphPage() {
   const [reset, setReset] = createSignal(0);
   const [focus, setFocus] = createSignal<string | null>(null);
   const [zoom, setZoom] = createSignal<{ dir: "in" | "out" } | null>(null);
+  const [toast, setToast] = createSignal<string | null>(null);
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  const showToast = (msg: string) => {
+    setToast(msg);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => setToast(null), 2000);
+  };
   let networkRef: any;
 
   const counts = createMemo(() =>
@@ -201,6 +208,7 @@ export function GraphPage() {
     a.href = canvas.toDataURL("image/png");
     a.download = "devin-skills-graph.png";
     a.click();
+    showToast("exported PNG");
   };
 
   const onClusterSelect = (group: string) => {
@@ -255,7 +263,7 @@ export function GraphPage() {
               <ul class="related-list">
                 <For each={isolatedNodes().slice(0, 20)}>
                   {(n) => (
-                    <li onClick={() => selectById(n.id)}>
+                    <li role="button" tabIndex={0} onClick={() => selectById(n.id)} onKeyDown={(e) => e.key === "Enter" && selectById(n.id)}>
                       <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
                       <span>{n.id}</span>
                     </li>
@@ -269,7 +277,7 @@ export function GraphPage() {
               <ul class="related-list">
                 <For each={issueNodes().slice(0, 20)}>
                   {(n) => (
-                    <li onClick={() => selectById(n.id)}>
+                    <li role="button" tabIndex={0} onClick={() => selectById(n.id)} onKeyDown={(e) => e.key === "Enter" && selectById(n.id)}>
                       <span class="sev-dot" style={{ "background-color": severityColors[n.maxSeverity ?? "Info"] }} />
                       <span class="sr-id">{n.id}</span>
                       <span class="count">{(n.findings ?? 0) + (n.observations ?? 0)}</span>
@@ -291,7 +299,7 @@ export function GraphPage() {
       </aside>
       <main class="canvas-wrap">
         <div class="topbar">
-          <button class="tb-btn" title="Toggle panels (B)" onClick={() => setSidebarOpen((v) => !v)}>
+          <button class="tb-btn" aria-label="Toggle panels (B)" title="Toggle panels (B)" onClick={() => setSidebarOpen((v) => !v)}>
             <span class={sidebarOpen() ? "i-mdi-menu-open" : "i-mdi-menu"} />
           </button>
           <span class="brand">Open Devin</span>
@@ -316,7 +324,7 @@ export function GraphPage() {
                 <ul class="search-results">
                   <For each={searchMatches().slice(0, 8)}>
                     {(m) => (
-                      <li onClick={() => selectById(m.id)}>
+                      <li role="button" tabIndex={0} onClick={() => selectById(m.id)} onKeyDown={(e) => e.key === "Enter" && selectById(m.id)}>
                         <span class="related-dot" style={{ "background-color": (groupColors[m.group] || groupColors.default).background }} />
                         <span class="sr-id">{m.id}</span>
                         <span class="sr-type">{m.type}</span>
@@ -341,31 +349,31 @@ export function GraphPage() {
             <option value="rule">global rules ({stats()?.typeCounts["rule"] ?? 0})</option>
           </select>
           <div class="tb-group">
-            <button class="tb-btn" title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>
+            <button class="tb-btn" aria-label="Toggle dark/light theme (D)" title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>
               <span class={dark() ? "i-mdi-white-balance-sunny" : "i-mdi-weather-night"} />
             </button>
-            <button class="tb-btn" classList={{ active: physics() }} title="Toggle physics (P)" onClick={() => setPhysics((v) => !v)}>
+            <button class="tb-btn" classList={{ active: physics() }} aria-label="Toggle physics (P)" title="Toggle physics (P)" onClick={() => setPhysics((v) => !v)}>
               <span class="i-mdi-atom" />
             </button>
-            <button class="tb-btn" classList={{ active: showLabels() }} title="Toggle labels (L)" onClick={() => setShowLabels((v) => !v)}>
+            <button class="tb-btn" classList={{ active: showLabels() }} aria-label="Toggle labels (L)" title="Toggle labels (L)" onClick={() => setShowLabels((v) => !v)}>
               <span class={showLabels() ? "i-mdi-label" : "i-mdi-label-off"} />
             </button>
-            <button class="tb-btn" classList={{ active: hideIsolated() }} title="Hide nodes with no edges (I)" onClick={() => setHideIsolated((v) => !v)}>
+            <button class="tb-btn" classList={{ active: hideIsolated() }} aria-label="Hide nodes with no edges (I)" title="Hide nodes with no edges (I)" onClick={() => setHideIsolated((v) => !v)}>
               <span class="i-mdi-filter-remove" />
             </button>
-            <button class="tb-btn" classList={{ active: issuesOnly() }} title="Show only nodes with review findings/observations (H)" onClick={() => setIssuesOnly((v) => !v)}>
+            <button class="tb-btn" classList={{ active: issuesOnly() }} aria-label="Show only nodes with review findings/observations (H)" title="Show only nodes with review findings/observations (H)" onClick={() => setIssuesOnly((v) => !v)}>
               <span class="i-mdi-alert-circle-outline" />
             </button>
-            <button class="tb-btn" classList={{ active: clusterMode() }} title="Group nodes into prefix clusters (C)" onClick={() => setClusterMode((v) => !v)}>
+            <button class="tb-btn" classList={{ active: clusterMode() }} aria-label="Group nodes into prefix clusters (C)" title="Group nodes into prefix clusters (C)" onClick={() => setClusterMode((v) => !v)}>
               <span class="i-mdi-hexagon-multiple" />
             </button>
           </div>
           <div class="tb-group">
-            <button class="tb-btn" title="Zoom out" onClick={() => setZoom({ dir: "out" })}><span class="i-mdi-minus" /></button>
-            <button class="tb-btn" title="Fit graph (R)" onClick={doReset}><span class="i-mdi-fit-to-screen" /></button>
-            <button class="tb-btn" title="Zoom in" onClick={() => setZoom({ dir: "in" })}><span class="i-mdi-plus" /></button>
-            <button class="tb-btn" title="Jump to a random skill" onClick={doRandom}><span class="i-mdi-dice-5" /></button>
-            <button class="tb-btn" title="Export graph as PNG" onClick={exportPng}><span class="i-mdi-camera" /></button>
+            <button class="tb-btn" aria-label="Zoom out" title="Zoom out" onClick={() => setZoom({ dir: "out" })}><span class="i-mdi-minus" /></button>
+            <button class="tb-btn" aria-label="Fit graph (R)" title="Fit graph (R)" onClick={doReset}><span class="i-mdi-fit-to-screen" /></button>
+            <button class="tb-btn" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom({ dir: "in" })}><span class="i-mdi-plus" /></button>
+            <button class="tb-btn" aria-label="Jump to a random skill" title="Jump to a random skill" onClick={doRandom}><span class="i-mdi-dice-5" /></button>
+            <button class="tb-btn" aria-label="Export graph as PNG" title="Export graph as PNG" onClick={exportPng}><span class="i-mdi-camera" /></button>
           </div>
         </div>
         <Show when={selected()}>
@@ -380,6 +388,7 @@ export function GraphPage() {
               onEgo={() => setEgo(ego() === selected()!.id ? null : selected()!.id)}
               onSelectById={selectById}
               onOpenInVSCode={openInVSCode}
+              onToast={showToast}
             />
           </div>
         </Show>
@@ -393,6 +402,9 @@ export function GraphPage() {
             <pre>{error()}</pre>
             <button onClick={() => window.location.reload()}>retry</button>
           </div>
+        </Show>
+        <Show when={toast()}>
+          <div class="toast" role="status">{toast()}</div>
         </Show>
         <Graph
           search={search()}

@@ -15,7 +15,17 @@ export const TopSkills: Component<{
         <For each={props.topSkills}>
           {(item) => (
             <li
+              role="button"
+              tabIndex={0}
               onClick={() => {
+                const data = props.graphData;
+                if (!data) return;
+                const incoming = data.edges.filter((e) => e.to === item.id).length;
+                const outgoing = data.edges.filter((e) => e.from === item.id).length;
+                props.onSelect(item.node, incoming, outgoing);
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
                 const data = props.graphData;
                 if (!data) return;
                 const incoming = data.edges.filter((e) => e.to === item.id).length;

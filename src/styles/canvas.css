@@ -267,6 +267,47 @@
   background-size: 28px 28px;
 }
 
+@media (max-width: 720px) {
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .brand {
+    display: none;
+  }
+  .topbar .search-wrap {
+    order: 10;
+    flex-basis: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  .topbar select {
+    max-width: none;
+    flex: 1;
+    min-width: 110px;
+  }
+  .detail-float {
+    width: min(320px, calc(100% - 32px));
+    right: 16px;
+  }
+}
+
+.toast {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.85rem;
+  z-index: 30;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
 /* floating detail card */
 .detail-float {
   position: absolute;
