@@ -1,74 +1,69 @@
 import { expect, test } from "@playwright/test";
 
-const graphReady = async (page: import("@playwright/test").Page) => {
+const appReady = async (page: import("@playwright/test").Page) => {
   await page.goto("/");
-  await expect(page.locator(".status")).toContainText(/[1-9]\d* nodes/, { timeout: 45_000 });
+  await expect(page.locator(".counts")).toContainText(/[1-9]\d* nodes/, { timeout: 45_000 });
 };
 
-test("loads graph with nodes and edges", async ({ page }) => {
-  await graphReady(page);
-  const status = await page.locator(".status").textContent();
-  const m = status?.match(/(\d+)\/(\d+) nodes · (\d+) edges/);
+test("loads graph with nodes, edges, and sidebar list", async ({ page }) => {
+  await appReady(page);
+  const counts = await page.locator(".counts").textContent();
+  const m = counts?.match(/(\d+) nodes · (\d+) edges/);
   expect(m).toBeTruthy();
   expect(Number(m![1])).toBeGreaterThan(0);
+  expect(Number(m![2])).toBeGreaterThan(0);
   await expect(page.locator(".graph-canvas canvas")).toBeVisible();
+  await expect(page.locator(".node-list li").first()).toBeVisible();
 });
 
-test("search → arrow-nav → enter selects node and opens detail card", async ({ page }) => {
-  await graphReady(page);
+test("sidebar tabs filter list by resource type", async ({ page }) => {
+  await appReady(page);
+  await page.locator(".tabs button", { hasText: "mcp" }).click();
+  const items = page.locator(".node-list li .node-type");
+  await expect(items.first()).toBeVisible();
+  for (const t of await items.allTextContents()) expect(t).toBe("mcp");
+});
+
+test("click list item selects node and renders markdown preview", async ({ page }) => {
+  await appReady(page);
+  const first = page.locator(".node-list li").first();
+  const id = await first.locator(".node-id").textContent();
+  await first.click();
+  await expect(page.locator(".preview-head h2")).toHaveText(id!);
+  await expect(page.locator(".preview-body .md")).toBeVisible({ timeout: 15_000 });
+});
+
+test("search filters the sidebar list", async ({ page }) => {
+  await appReady(page);
+  const total = await page.locator(".node-list li").count();
   await page.keyboard.press("/");
   await page.keyboard.type("deep-plan");
-  const results = page.locator(".search-results li");
-  await expect(results.first()).toBeVisible();
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowUp");
-  const firstId = await page.locator(".search-results li .sr-id").first().textContent();
-  await page.keyboard.press("Enter");
-  await expect(page.locator(".search-results")).toBeHidden();
-  await expect(page.locator(".detail-float .detail h3")).toHaveText(firstId!);
+  await expect(page.locator(".node-list li")).toHaveCount(1, { timeout: 10_000 });
+  expect(total).toBeGreaterThan(1);
+  await expect(page.locator(".node-list .node-id")).toHaveText("deep-plan");
 });
 
-test("prefix filter reduces visible node count", async ({ page }) => {
-  await graphReady(page);
-  await page.locator(".topbar select").first().selectOption("follow");
-  await expect(page.locator(".status")).toContainText("182/", { timeout: 15_000 });
-});
-
-test("issues toggle shows only nodes with findings", async ({ page }) => {
-  await graphReady(page);
-  await page.locator(".tb-btn[title*='findings']").click();
-  await page.waitForFunction(
-    () => (window as any).__net?.body.data.nodes.get().filter((n: any) => !n.hidden).length < 100,
-    { timeout: 15_000 }
-  );
-});
-
-test("cluster mode groups nodes into hexagon clusters", async ({ page }) => {
-  await graphReady(page);
-  await page.locator(".tb-btn[title*='cluster']").click();
-  await page.waitForFunction(
-    () => (window as any).__net?.body.data.nodes.length < 300,
-    { timeout: 20_000 }
-  );
-  await page.locator(".tb-btn[title*='cluster']").click();
-  await page.waitForFunction(
-    () => (window as any).__net?.body.data.nodes.length > 300,
-    { timeout: 20_000 }
-  );
+test("prefix filter reduces visible list count", async ({ page }) => {
+  await appReady(page);
+  await page.locator(".tabs button", { hasText: "skills" }).click();
+  await page.locator(".topbar select").selectOption("follow");
+  await expect(page.locator(".node-list li").first()).toBeVisible();
+  const ids = await page.locator(".node-list li .node-id").allTextContents();
+  for (const id of ids) expect(id.startsWith("follow-")).toBeTruthy();
 });
 
 test("theme toggle switches light/dark class", async ({ page }) => {
-  await graphReady(page);
+  await appReady(page);
   const app = page.locator(".app");
-  await expect(app).not.toHaveClass(/light/);
+  const wasLight = await app.evaluate((el) => el.classList.contains("light"));
   await page.keyboard.press("d");
-  await expect(app).toHaveClass(/light/);
+  await expect(app).toHaveClass(wasLight ? /^(?!.*light).*$/ : /light/);
 });
 
-test("escape clears selection", async ({ page }) => {
-  await graphReady(page);
-  await page.locator(".top-list li").first().click();
-  await expect(page.locator(".detail-float")).toBeVisible();
+test("escape clears selection and preview returns to empty state", async ({ page }) => {
+  await appReady(page);
+  await page.locator(".node-list li").first().click();
+  await expect(page.locator(".preview-head")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator(".detail-float")).toBeHidden();
+  await expect(page.locator(".preview-empty")).toBeVisible();
 });

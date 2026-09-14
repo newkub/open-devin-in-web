@@ -58,14 +58,15 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 
 - Frontend: SolidJS + TanStack Router + UnoCSS
 - Backend: Elysia + oRPC (serves graph data from skills directory)
-- Graph: vis-network (CDN-loaded, force-directed layout)
+- Graph: vis-network (npm bundle, force-directed layout)
+- Markdown preview: markdown-it (`html: false`)
 - Build: Vite
 - `src/App.tsx` — Main app component
 - `src/Graph.tsx` — Graph visualization
-- `src/components/` — UI panels (Detail, Legend, Shortcuts, Stats, TopSkills)
-- `src/orpc/` — oRPC client and router
+- `src/components/` — TopBar (search/filters), Sidebar (type tabs + node list), Preview (markdown)
+- `src/orpc/` — oRPC client and router (`skillsGraph`, `nodeSource`)
 - `src/routes/` — File-system routes
-- `src/styles/` — CSS stylesheets
+- `src/styles/` — CSS stylesheets (base, layout, preview)
 - `server.ts` — Elysia server entry point
 
 ### 3. Tech Stack

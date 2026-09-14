@@ -1,11 +1,26 @@
 import { os } from "@orpc/server";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { z } from "zod";
 
 const HOME_DIR = Bun.env.USERPROFILE ?? Bun.env.HOME ?? "";
+const DEVIN_HOME = Bun.env.DEVIN_HOME ?? join(Bun.env.APPDATA ?? join(HOME_DIR, ".config"), "devin");
 
-const SKILLS_ROOT = Bun.env.SKILLS_ROOT ?? "C:\\Users\\Veerapong\\AppData\\Roaming\\devin\\skills";
-const AGENTS_ROOT = Bun.env.AGENTS_ROOT ?? join(HOME_DIR, ".config", "devin", "agents");
-const MCP_CONFIG = Bun.env.MCP_CONFIG ?? join(SKILLS_ROOT, ".devin", "config.json");
+const SKILLS_ROOT = Bun.env.SKILLS_ROOT ?? join(DEVIN_HOME, "skills");
+
+const firstExisting = (candidates: string[], fallback: string) => {
+  for (const p of candidates) if (existsSync(p)) return p;
+  return fallback;
+};
+
+const AGENTS_ROOT = Bun.env.AGENTS_ROOT ?? firstExisting(
+  [join(DEVIN_HOME, "agents"), join(HOME_DIR, ".config", "devin", "agents")],
+  join(DEVIN_HOME, "agents"),
+);
+const MCP_CONFIG = Bun.env.MCP_CONFIG ?? firstExisting(
+  [join(DEVIN_HOME, "mcp_config.json"), join(SKILLS_ROOT, ".devin", "config.json")],
+  join(DEVIN_HOME, "mcp_config.json"),
+);
 const GLOBAL_RULES = Bun.env.GLOBAL_RULES ?? join(HOME_DIR, ".codeium", "windsurf", "memories", "global_rules.md");
 const REVIEW_REPORT = Bun.env.REVIEW_REPORT ?? join(SKILLS_ROOT, "review-devin-global-harness", "review-skills-report.json");
 
@@ -237,8 +252,21 @@ export async function buildGraph(): Promise<GraphData> {
 
 const skillsGraph = os.handler(() => buildGraph());
 
+export type NodeSource = { id: string; path: string; content: string };
+
+const nodeSource = os
+  .input(z.object({ id: z.string().min(1) }))
+  .handler(async ({ input }): Promise<NodeSource> => {
+    const data = await buildGraph();
+    const node = data.nodes.find((n) => n.id === input.id);
+    if (!node?.file) throw new Error(`node not found: ${input.id}`);
+    const content = await Bun.file(node.file).text();
+    return { id: node.id, path: node.file, content };
+  });
+
 export const router = {
   skillsGraph,
+  nodeSource,
 };
 
 export type AppRouter = typeof router;

@@ -1,18 +1,10 @@
-import { createEffect, createSignal, onCleanup, onMount, Show, type Accessor, type Component } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show, type Component } from "solid-js";
+import { DataSet, Network } from "vis-network/standalone";
 import { orpc } from "./orpc/client";
 import type { GraphData } from "./orpc/router";
 
 export type { GraphData } from "./orpc/router";
 export type GraphNode = GraphData["nodes"][number];
-export type SelectedNode = GraphNode & { incoming: number; outgoing: number };
-
-export const severityColors: Record<string, string> = {
-  Critical: "#dc2626",
-  High: "#ea580c",
-  Medium: "#eab308",
-  Low: "#94a3b8",
-  Info: "#64748b",
-};
 
 export const groupColors: Record<string, { background: string; border: string }> = {
   follow: { background: "#6366f1", border: "#4f46e5" },
@@ -26,38 +18,27 @@ export const groupColors: Record<string, { background: string; border: string }>
   default: { background: "#94a3b8", border: "#64748b" },
 };
 
-declare global {
-  interface Window {
-    vis: any;
-  }
-}
+export const typeColors: Record<string, string> = {
+  skill: "#38bdf8",
+  subagent: "#f59e0b",
+  mcp: "#a855f7",
+  rule: "#ef4444",
+};
 
 export const Graph: Component<{
   search: string;
-  prefix: string;
   typeFilter: string;
   dark: boolean;
-  physics: boolean;
-  showLabels: boolean;
-  hideIsolated: boolean;
-  issuesOnly: boolean;
-  ego: string | null;
-  clusterMode: boolean;
-  reset: number;
   focus: string | null;
-  highlight: string | null;
-  zoom: Accessor<{ dir: "in" | "out" } | null>;
-  onSelect: (node: SelectedNode | null) => void;
+  fitTick: number;
+  selectedId: string | null;
+  onSelect: (node: GraphNode | null) => void;
   onData: (data: GraphData) => void;
   onReady: () => void;
   onError?: (error: unknown) => void;
-  onNetwork?: (network: any) => void;
-  onClusterSelect?: (group: string) => void;
-  onDoubleClick?: (node: GraphNode) => void;
-  onPhysicsSettled?: () => void;
 }> = (props) => {
   let container: HTMLDivElement;
-  let network: any;
+  let network: Network;
   let degreeMap = new Map<string, number>();
   const [raw, setRaw] = createSignal<GraphData | null>(null);
   const [colored, setColored] = createSignal<GraphData | null>(null);
@@ -76,13 +57,6 @@ export const Graph: Component<{
     meta.className = "tip-meta";
     meta.textContent = `${n.type} · ${n.group} · ${degree} edges`;
     tip.append(head, meta);
-    if ((n.findings ?? 0) > 0 || (n.observations ?? 0) > 0) {
-      const health = document.createElement("div");
-      health.className = "tip-health";
-      health.textContent = `${n.maxSeverity} · ${n.findings ?? 0} findings · ${n.observations ?? 0} observations`;
-      health.style.color = severityColors[n.maxSeverity ?? "Info"];
-      tip.append(health);
-    }
     if (n.title) {
       const p = document.createElement("p");
       p.className = "tip-desc";
@@ -118,32 +92,25 @@ export const Graph: Component<{
 
       const nodes = data.nodes.map((n) => {
         const base = groupColors[n.group] || groupColors.default;
-        const hasFindings = (n.findings ?? 0) > 0;
-        const hasObs = (n.observations ?? 0) > 0;
         return {
           ...n,
           desc: n.title,
           title: makeTooltip(n, degreeMap.get(n.id) ?? 0),
-          color: hasFindings || hasObs
-            ? { background: base.background, border: severityColors[n.maxSeverity ?? "Info"] ?? base.border }
-            : base,
-          borderWidth: hasFindings ? 4 : hasObs ? 3 : 2,
+          color: base,
+          borderWidth: 2,
           value: degreeMap.get(n.id) ?? 0,
           shape: n.type === "mcp" ? "diamond" : n.type === "rule" ? "star" : n.type === "subagent" ? "triangle" : "dot",
         };
       });
-      setColored({ nodes: nodes as any, edges: data.edges });
+      setColored({ nodes: nodes as any, edges: data.edges, review: data.review });
 
-      const fontColor = props.dark ? "#e2e8f0" : "#1e293b";
-
-      const ds = {
-        nodes: new window.vis.DataSet(nodes),
-        edges: new window.vis.DataSet(data.edges.map((e, i) => ({ ...e, id: `e${i}` }))),
-      };
-      network = new window.vis.Network(container, ds, {
+      network = new Network(container, {
+        nodes: new DataSet(nodes as any),
+        edges: new DataSet(data.edges.map((e, i) => ({ ...e, id: `e${i}` }))),
+      }, {
         nodes: {
           shape: "dot",
-          font: { color: fontColor, size: props.showLabels ? 11 : 0 },
+          font: { color: props.dark ? "#e2e8f0" : "#1e293b", size: 11 },
           borderWidth: 2,
           scaling: { min: 6, max: 20, label: { enabled: false } },
         },
@@ -156,50 +123,30 @@ export const Graph: Component<{
         },
         layout: { improvedLayout: false },
         physics: {
-          enabled: props.physics,
           solver: "forceAtlas2Based",
           forceAtlas2Based: { gravitationalConstant: -60, springLength: 120, damping: 0.6 },
           stabilization: { iterations: 150, updateInterval: 50 },
         },
         interaction: { hover: true, tooltipDelay: 200, hideEdgesOnDrag: true, hideEdgesOnZoom: true, selectConnectedEdges: true },
       });
-      props.onNetwork?.(network);
       (window as any).__net = network;
       setNetReady(true);
-      network.on("selectNode", () => {
-        const id = network.getSelectedNodes()[0];
-        if (typeof id === "string" && id.startsWith("cluster:")) {
-          props.onClusterSelect?.(id.slice(8));
-          return;
-        }
-        const node = data.nodes.find((n) => n.id === id);
-        if (!node) return;
-        const incoming = data.edges.filter((e) => e.to === id).length;
-        const outgoing = data.edges.filter((e) => e.from === id).length;
-        props.onSelect({ ...node, incoming, outgoing });
+
+      network.on("selectNode", (params: any) => {
+        const node = data.nodes.find((n) => n.id === params.nodes?.[0]);
+        props.onSelect(node ?? null);
       });
       network.on("deselectNode", () => props.onSelect(null));
-      network.on("doubleClick", (params: any) => {
-        const id = params.nodes?.[0];
-        const node = data.nodes.find((n) => n.id === id);
-        if (node) props.onDoubleClick?.(node);
-      });
       network.on("click", (params: any) => {
         if (params.nodes.length === 0) props.onSelect(null);
       });
       network.on("dragEnd", (params: any) => {
         const updates = params.nodes.map((id: string) => ({ id, fixed: { x: true, y: true } }));
-        network.body.data.nodes.update(updates);
+        ((network as any).body.data.nodes as DataSet<any>).update(updates);
       });
       network.on("hoverNode", (params: any) => setHoverId(params.node));
       network.on("blurNode", () => setHoverId(null));
-      network.on("zoom", () => {
-        setLabelsHidden(network.getScale() < 0.45);
-      });
-      network.on("afterDrawing", () => {
-        const hidden = network.getScale() < 0.45;
-        if (hidden !== labelsHidden()) setLabelsHidden(hidden);
-      });
+      network.on("zoom", () => setLabelsHidden(network.getScale() < 0.45));
 
       let ready = false;
       const markReady = () => {
@@ -207,11 +154,10 @@ export const Graph: Component<{
         ready = true;
         props.onReady();
       };
-      const settle = () => {
+      network.on("stabilizationIterationsDone", () => {
         network.setOptions({ physics: { enabled: false } });
-        props.onPhysicsSettled?.();
-      };
-      network.on("stabilizationIterationsDone", () => { settle(); markReady(); });
+        markReady();
+      });
       network.on("afterDrawing", markReady);
     } catch (err) {
       props.onError?.(err);
@@ -223,156 +169,67 @@ export const Graph: Component<{
   createEffect(() => {
     if (!netReady() || !colored() || !raw()) return;
     const q = props.search.toLowerCase().trim();
-    const p = props.prefix;
     const tf = props.typeFilter;
-    let visible = colored()!.nodes.filter((n) => {
+    const visible = colored()!.nodes.filter((n) => {
       const matchSearch = !q || n.id.toLowerCase().includes(q) || ((n as any).desc ?? "").toLowerCase().includes(q);
-      const matchPrefix = p === "all" || n.group === p;
       const matchType = tf === "all" || n.type === tf;
-      return matchSearch && matchPrefix && matchType;
+      return matchSearch && matchType;
     });
-    if (props.hideIsolated) {
-      visible = visible.filter((n) => (degreeMap.get(n.id) ?? 0) > 0);
-    }
-    if (props.issuesOnly) {
-      visible = visible.filter((n) => (n.findings ?? 0) > 0 || (n.observations ?? 0) > 0);
-    }
-    if (props.ego) {
-      const egoId = props.ego;
-      const keep = new Set<string>([egoId]);
-      raw()!.edges.forEach((e) => {
-        if (e.from === egoId) keep.add(e.to);
-        if (e.to === egoId) keep.add(e.from);
-      });
-      visible = visible.filter((n) => keep.has(n.id));
-    }
     const ids = new Set(visible.map((n) => n.id));
-    const groupById = new Map(visible.map((n) => [n.id, n.group]));
 
-    const h = props.highlight || hoverId();
-    const hVisible = h ? ids.has(h) : false;
+    const h = props.selectedId || hoverId();
     const neighborIds = new Set<string>();
-    if (hVisible) {
+    if (h && ids.has(h)) {
       raw()!.edges.forEach((e) => {
         if (e.from === h) neighborIds.add(e.to);
         if (e.to === h) neighborIds.add(e.from);
       });
     }
+    const hVisible = h ? ids.has(h) : false;
 
-    setEmpty(visible.length === 0 && (q !== "" || p !== "all"));
+    setEmpty(visible.length === 0);
 
-    if (props.clusterMode) {
-      const styled = visible.map((n) => {
-        if (!hVisible) return n;
-        if (n.id === h) return { ...n, size: 16, opacity: 1 };
-        if (neighborIds.has(n.id)) return { ...n, opacity: 1 };
-        return { ...n, opacity: 0.25 };
-      });
-      const byGroup = new Map<string, any[]>();
-      for (const n of styled) {
-        const arr = byGroup.get(n.group) ?? [];
-        arr.push(n);
-        byGroup.set(n.group, arr);
-      }
-      const clusterOf = new Map<string, string>();
-      const nodeList = [...byGroup.entries()].map(([g, arr]) => {
-        for (const n of arr) clusterOf.set(n.id, `cluster:${g}`);
-        return {
-          id: `cluster:${g}`,
-          label: `${g} (${arr.length})`,
-          title: `${arr.length} ${g} nodes — click to drill down`,
-          group: g,
-          color: groupColors[g] || groupColors.default,
-          value: arr.length,
-          shape: "hexagon",
-          size: Math.min(32, 10 + arr.length),
-          opacity: arr[0].opacity ?? 1,
-        };
-      });
-      const visibleEdges = raw()!.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
-      const seen = new Set<string>();
-      const edgeList: any[] = [];
-      for (const e of visibleEdges) {
-        const f = clusterOf.get(e.from)!;
-        const t = clusterOf.get(e.to)!;
-        if (f === t) continue;
-        const key = `${f}->${t}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        edgeList.push({ ...e, from: f, to: t });
-      }
-      network.setData({
-        nodes: new window.vis.DataSet(nodeList),
-        edges: new window.vis.DataSet(edgeList),
-      });
-      network.stabilize(60);
-      return;
-    }
-
-    const nodesDs = network.body.data.nodes;
-    const edgesDs = network.body.data.edges;
-    if (nodesDs.length !== colored()!.nodes.length) {
-      nodesDs.clear();
-      nodesDs.add(colored()!.nodes);
-    }
+    const nodesDs = (network as any).body.data.nodes as DataSet<any>;
+    const edgesDs = (network as any).body.data.edges as DataSet<any>;
     nodesDs.update(colored()!.nodes.map((n) => ({
       id: n.id,
       hidden: !ids.has(n.id),
-      opacity: hVisible && ids.has(n.id) ? (n.id === h || neighborIds.has(n.id) ? 1 : 0.15) : 1,
+      opacity: hVisible ? (n.id === h || neighborIds.has(n.id) ? 1 : 0.15) : 1,
     })));
-    if (edgesDs.length !== raw()!.edges.length) {
-      edgesDs.clear();
-      edgesDs.add(raw()!.edges.map((e, i) => ({ ...e, id: `e${i}` })));
-    }
     edgesDs.update(raw()!.edges.map((e, i) => {
       const edgeVisible = ids.has(e.from) && ids.has(e.to);
       const connected = hVisible && (e.from === h || e.to === h);
       return {
         id: `e${i}`,
         hidden: !edgeVisible,
-        color: { color: (groupColors[groupById.get(e.from) || "default"] || groupColors.default).border, opacity: connected ? 0.9 : 0.35 },
         width: connected ? 1.4 : 0.6,
+        color: { opacity: connected ? 0.9 : 0.35 },
       };
     }));
   });
 
   createEffect(() => {
     if (!netReady()) return;
-    const fontColor = props.dark ? "#e2e8f0" : "#1e293b";
     network.setOptions({
-      nodes: { font: { color: fontColor, size: props.showLabels && !labelsHidden() ? 11 : 0 } },
+      nodes: { font: { color: props.dark ? "#e2e8f0" : "#1e293b", size: labelsHidden() ? 0 : 11 } },
     });
-  });
-
-  createEffect(() => {
-    if (!netReady()) return;
-    network.setOptions({ physics: { enabled: props.physics } });
-  });
-
-  createEffect(() => {
-    if (!netReady()) return;
-    props.reset;
-    network.fit();
   });
 
   createEffect(() => {
     if (!netReady() || !props.focus) return;
     network.focus(props.focus, { scale: 1.2, animation: true });
+    network.selectNodes([props.focus]);
   });
 
   createEffect(() => {
-    if (!netReady()) return;
-    const z = props.zoom();
-    if (!z) return;
-    const current = network.getScale() || 1;
-    const next = current * (z.dir === "in" ? 1.2 : 0.8);
-    network.moveTo({ scale: Math.max(0.2, Math.min(next, 4)), animation: true });
+    if (!netReady() || props.fitTick === 0) return;
+    network.fit({ animation: true });
   });
 
   return (
     <div class="graph-wrap">
       <Show when={empty()}>
-        <div class="empty-overlay">No matching skills</div>
+        <div class="empty-overlay">No matching nodes</div>
       </Show>
       <div ref={(el) => (container = el)} class="graph-canvas" />
     </div>

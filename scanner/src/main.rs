@@ -152,12 +152,33 @@ fn scan_dir(root: &Path, file_name: &str, ty: &str, acc: &mut Acc) {
     }
 }
 
+fn first_existing(candidates: &[PathBuf], fallback: PathBuf) -> PathBuf {
+    for p in candidates {
+        if p.exists() {
+            return p.clone();
+        }
+    }
+    fallback
+}
+
 fn main() -> io::Result<()> {
     let home = env::var("USERPROFILE").or_else(|_| env::var("HOME")).unwrap_or_default();
+    let devin_home = env::var("DEVIN_HOME").unwrap_or_else(|_| {
+        env::var("APPDATA")
+            .map(|a| format!("{}\\devin", a))
+            .unwrap_or_else(|_| format!("{}/.config/devin", home))
+    });
     let skills_root = env::var("SKILLS_ROOT")
-        .unwrap_or_else(|_| format!("{}\\AppData\\Roaming\\devin\\skills", home));
-    let agents_root = env::var("AGENTS_ROOT")
-        .unwrap_or_else(|_| format!("{}\\.config\\devin\\agents", home));
+        .unwrap_or_else(|_| format!("{}\\skills", devin_home));
+    let agents_root = env::var("AGENTS_ROOT").map(PathBuf::from).unwrap_or_else(|_| {
+        first_existing(
+            &[
+                PathBuf::from(format!("{}\\agents", devin_home)),
+                PathBuf::from(format!("{}\\.config\\devin\\agents", home)),
+            ],
+            PathBuf::from(format!("{}\\agents", devin_home)),
+        )
+    });
 
     let mut skills = Acc::new();
     scan_dir(PathBuf::from(&skills_root).as_path(), "SKILL.md", "skill", &mut skills);

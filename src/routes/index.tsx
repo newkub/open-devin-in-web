@@ -1,11 +1,8 @@
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { Graph, groupColors, severityColors, type GraphData, type GraphNode, type SelectedNode } from "../Graph";
-import { StatsPanel } from "../components/StatsPanel";
-import { Collapsible } from "../components/Collapsible";
-import { LegendPanel } from "../components/LegendPanel";
-import { ShortcutsPanel } from "../components/ShortcutsPanel";
-import { DetailPanel } from "../components/DetailPanel";
-import { TopSkills } from "../components/TopSkills";
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { Graph, type GraphData, type GraphNode } from "../Graph";
+import { TopBar } from "../components/TopBar";
+import { Sidebar, type SidebarTab } from "../components/Sidebar";
+import { Preview } from "../components/Preview";
 
 const persisted = <T,>(key: string, init: T) => {
   const full = `open-devin-in-web-${key}`;
@@ -23,46 +20,16 @@ const persisted = <T,>(key: string, init: T) => {
 
 export function GraphPage() {
   const [search, setSearch] = createSignal("");
-  const [selected, setSelected] = createSignal<SelectedNode | null>(null);
+  const [selected, setSelected] = createSignal<GraphNode | null>(null);
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
-  const [searchFocused, setSearchFocused] = createSignal(false);
-  const [searchIdx, setSearchIdx] = createSignal(0);
+  const [focus, setFocus] = createSignal<string | null>(null);
+  const [fitTick, setFitTick] = createSignal(0);
 
   const [dark, setDark] = persisted("theme", true);
   const [prefix, setPrefix] = persisted("prefix", "all");
-  const [typeFilter, setTypeFilter] = persisted("type", "all");
-  const [showLabels, setShowLabels] = persisted("labels", true);
-  const [hideIsolated, setHideIsolated] = persisted("hide-isolated", false);
-  const [issuesOnly, setIssuesOnly] = persisted("issues-only", false);
-  const [sidebarOpen, setSidebarOpen] = persisted("sidebar", true);
-  const [tab, setTab] = persisted("panel-tab", "explore");
-  const [ego, setEgo] = createSignal<string | null>(null);
-  const [physics, setPhysics] = createSignal(true);
-  const [clusterMode, setClusterMode] = createSignal(false);
-  const [reset, setReset] = createSignal(0);
-  const [focus, setFocus] = createSignal<string | null>(null);
-  const [zoom, setZoom] = createSignal<{ dir: "in" | "out" } | null>(null);
-  const [toast, setToast] = createSignal<string | null>(null);
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  const showToast = (msg: string) => {
-    setToast(msg);
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => setToast(null), 2000);
-  };
-  let networkRef: any;
-
-  const counts = createMemo(() =>
-    graphData() ? { nodes: graphData()!.nodes.length, edges: graphData()!.edges.length } : { nodes: 0, edges: 0 }
-  );
-
-  const groups = createMemo(() => {
-    const data = graphData();
-    if (!data) return [] as string[];
-    const set = new Set(data.nodes.map((n) => n.group));
-    return [...set].sort();
-  });
+  const [tab, setTab] = persisted<SidebarTab>("tab", "all");
 
   const degreeMap = createMemo(() => {
     const data = graphData();
@@ -76,164 +43,78 @@ export function GraphPage() {
     return degree;
   });
 
-  const stats = createMemo(() => {
+  const groups = createMemo(() => {
     const data = graphData();
-    if (!data) return null;
-    const degree = degreeMap();
-    const isolated = data.nodes.filter((n) => (degree.get(n.id) ?? 0) === 0).length;
-    const groupCounts = data.nodes.reduce<Record<string, number>>((acc, n) => {
-      acc[n.group] = (acc[n.group] ?? 0) + 1;
-      return acc;
-    }, {});
-    const typeCounts = data.nodes.reduce<Record<string, number>>((acc, n) => {
-      acc[n.type] = (acc[n.type] ?? 0) + 1;
-      return acc;
-    }, {});
-    return { isolated, groupCounts, typeCounts };
+    if (!data) return [] as string[];
+    return [...new Set(data.nodes.map((n) => n.group))].sort();
   });
 
-  const searchMatches = createMemo(() => {
+  const groupCounts = createMemo(() => {
     const data = graphData();
+    const counts: Record<string, number> = {};
+    if (!data) return counts;
+    for (const n of data.nodes) counts[n.group] = (counts[n.group] ?? 0) + 1;
+    return counts;
+  });
+
+  const tabCounts = createMemo(() => {
+    const data = graphData();
+    const counts: Record<SidebarTab, number> = { all: 0, skill: 0, subagent: 0, mcp: 0, rule: 0 };
+    if (!data) return counts;
+    for (const n of data.nodes) {
+      counts.all += 1;
+      if (n.type in counts) counts[n.type as SidebarTab] += 1;
+    }
+    return counts;
+  });
+
+  const matchesSearch = (n: GraphNode) => {
     const q = search().toLowerCase().trim();
-    if (!data || !q) return [] as GraphNode[];
-    const deg = degreeMap();
-    return data.nodes
-      .filter((n) => n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q))
-      .sort((a, b) => (deg.get(b.id) ?? 0) - (deg.get(a.id) ?? 0));
-  });
+    return !q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q);
+  };
 
-  const isolatedNodes = createMemo(() => {
+  const listNodes = createMemo(() => {
     const data = graphData();
     if (!data) return [] as GraphNode[];
-    const deg = degreeMap();
-    return data.nodes.filter((n) => (deg.get(n.id) ?? 0) === 0);
-  });
-
-  const visibleCount = createMemo(() => {
-    const data = graphData();
-    if (!data) return null;
-    const q = search().toLowerCase().trim();
+    const t = tab();
     const p = prefix();
-    const tf = typeFilter();
     const deg = degreeMap();
-    let list = data.nodes.filter((n) =>
-      (!q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q)) &&
-      (p === "all" || n.group === p) &&
-      (tf === "all" || n.type === tf)
-    );
-    if (hideIsolated()) list = list.filter((n) => (deg.get(n.id) ?? 0) > 0);
-    if (issuesOnly()) list = list.filter((n) => (n.findings ?? 0) > 0 || (n.observations ?? 0) > 0);
-    if (ego()) {
-      const keep = new Set([ego()!]);
-      for (const e of data.edges) {
-        if (e.from === ego()) keep.add(e.to);
-        if (e.to === ego()) keep.add(e.from);
-      }
-      list = list.filter((n) => keep.has(n.id));
-    }
-    return list.length;
-  });
-
-  const issueNodes = createMemo(() => {
-    const data = graphData();
-    if (!data) return [] as GraphNode[];
-    const order = ["Critical", "High", "Medium", "Low", "Info"];
     return data.nodes
-      .filter((n) => (n.findings ?? 0) > 0 || (n.observations ?? 0) > 0)
-      .sort((a, b) => order.indexOf(a.maxSeverity ?? "Info") - order.indexOf(b.maxSeverity ?? "Info")
-        || (b.findings ?? 0) + (b.observations ?? 0) - ((a.findings ?? 0) + (a.observations ?? 0)));
-  });
-
-  const topSkills = createMemo(() => {
-    if (!graphData()) return [];
-    const deg = new Map<string, number>();
-    for (const n of graphData()!.nodes) deg.set(n.id, 0);
-    for (const e of graphData()!.edges) {
-      deg.set(e.from, (deg.get(e.from) ?? 0) + 1);
-      deg.set(e.to, (deg.get(e.to) ?? 0) + 1);
-    }
-    return [...deg.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([id, count]) => ({ id, count, node: graphData()!.nodes.find((n) => n.id === id)! }));
+      .filter((n) =>
+        matchesSearch(n) &&
+        (t === "all" || n.type === t) &&
+        (p === "all" || n.group === p || n.type !== "skill")
+      )
+      .sort((a, b) => (deg.get(b.id) ?? 0) - (deg.get(a.id) ?? 0) || a.id.localeCompare(b.id));
   });
 
   const related = (ids: string[]) => {
-    if (!graphData()) return [] as GraphNode[];
-    return ids.map((id) => graphData()!.nodes.find((n) => n.id === id)).filter(Boolean) as GraphNode[];
+    const data = graphData();
+    if (!data) return [] as GraphNode[];
+    return ids.map((id) => data.nodes.find((n) => n.id === id)).filter(Boolean) as GraphNode[];
   };
 
   const incoming = createMemo(() => {
     if (!selected() || !graphData()) return [] as GraphNode[];
-    const ids = graphData()!.edges.filter((e) => e.to === selected()!.id).map((e) => e.from);
-    return related(ids);
+    return related(graphData()!.edges.filter((e) => e.to === selected()!.id).map((e) => e.from));
   });
 
   const outgoing = createMemo(() => {
     if (!selected() || !graphData()) return [] as GraphNode[];
-    const ids = graphData()!.edges.filter((e) => e.from === selected()!.id).map((e) => e.to);
-    return related(ids);
+    return related(graphData()!.edges.filter((e) => e.from === selected()!.id).map((e) => e.to));
   });
 
-  const doReset = () => { setSelected(null); setFocus(null); setReset((v) => v + 1); };
-  const doFocus = () => { if (selected()) setFocus(selected()!.id); };
-  const doRandom = () => {
-    if (!graphData()) return;
-    const n = graphData()!.nodes[Math.floor(Math.random() * graphData()!.nodes.length)];
-    const inc = graphData()!.edges.filter((e) => e.to === n.id).length;
-    const out = graphData()!.edges.filter((e) => e.from === n.id).length;
-    setSelected({ ...n, incoming: inc, outgoing: out });
-    setFocus(n.id);
-  };
-
-  const selectById = (id: string) => {
-    const data = graphData();
-    if (!data) return;
-    const n = data.nodes.find((x) => x.id === id);
-    if (!n) return;
-    const inc = data.edges.filter((e) => e.to === id).length;
-    const out = data.edges.filter((e) => e.from === id).length;
-    setSelected({ ...n, incoming: inc, outgoing: out });
-    setFocus(id);
-  };
-
-  const openInVSCode = (node: GraphNode) => {
-    const file = node.file;
-    if (!file) return;
-    window.open(`vscode://file/${file.replaceAll("\\", "/")}`);
-  };
-
-  const exportPng = () => {
-    const canvas = networkRef?.canvas?.frame?.canvas as HTMLCanvasElement | undefined;
-    if (!canvas) return;
-    const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
-    a.download = "devin-skills-graph.png";
-    a.click();
-    showToast("exported PNG");
-  };
-
-  const onClusterSelect = (group: string) => {
-    setClusterMode(false);
-    setPrefix(group);
-    setSelected(null);
+  const selectNode = (n: GraphNode | null, shouldFocus = false) => {
+    setSelected(n);
+    if (n && shouldFocus) setFocus(n.id);
   };
 
   const handler = (e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
     if (e.key === "Escape") { setSelected(null); setFocus(null); }
-    if (e.key === "f" || e.key === "F") doFocus();
-    if (e.key === "r" || e.key === "R") doReset();
     if (e.key === "d" || e.key === "D") setDark((v) => !v);
-    if (e.key === "p" || e.key === "P") setPhysics((v) => !v);
-    if (e.key === "l" || e.key === "L") setShowLabels((v) => !v);
-    if (e.key === "i" || e.key === "I") setHideIsolated((v) => !v);
-    if (e.key === "c" || e.key === "C") setClusterMode((v) => !v);
-    if (e.key === "b" || e.key === "B") setSidebarOpen((v) => !v);
-    if (e.key === "h" || e.key === "H") setIssuesOnly((v) => !v);
     if (e.key === "/" || e.key === "s" || e.key === "S") {
-      const el = document.getElementById("skill-search") as HTMLInputElement | null;
-      el?.focus();
+      (document.getElementById("skill-search") as HTMLInputElement | null)?.focus();
       e.preventDefault();
     }
   };
@@ -242,202 +123,66 @@ export function GraphPage() {
 
   return (
     <div class="app" classList={{ light: !dark() }}>
-      <aside class="sidebar" classList={{ hide: !sidebarOpen() }}>
-        <div class="tabs" role="tablist">
-          <button classList={{ active: tab() === "explore" }} role="tab" onClick={() => setTab("explore")}>
-            <span class="i-mdi-compass-outline" /> explore
-          </button>
-          <button classList={{ active: tab() === "stats" }} role="tab" onClick={() => setTab("stats")}>
-            <span class="i-mdi-chart-bar" /> stats
-          </button>
-          <button classList={{ active: tab() === "help" }} role="tab" onClick={() => setTab("help")}>
-            <span class="i-mdi-keyboard-outline" /> help
-          </button>
-        </div>
-        <Show when={tab() === "explore"}>
-          <TopSkills
-            topSkills={topSkills()}
-            graphData={graphData()}
-            onSelect={(node, inc, out) => { setSelected({ ...node, incoming: inc, outgoing: out }); setFocus(node.id); }}
-          />
-          <Show when={isolatedNodes().length > 0}>
-            <Collapsible title={`isolated (${isolatedNodes().length})`}>
-              <ul class="related-list">
-                <For each={isolatedNodes().slice(0, 20)}>
-                  {(n) => (
-                    <li role="button" tabIndex={0} onClick={() => selectById(n.id)} onKeyDown={(e) => e.key === "Enter" && selectById(n.id)}>
-                      <span class="related-dot" style={{ "background-color": (groupColors[n.group] || groupColors.default).background }} />
-                      <span>{n.id}</span>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Collapsible>
-          </Show>
-          <Show when={issueNodes().length > 0}>
-            <Collapsible title={`health (${issueNodes().length})`}>
-              <ul class="related-list">
-                <For each={issueNodes().slice(0, 20)}>
-                  {(n) => (
-                    <li role="button" tabIndex={0} onClick={() => selectById(n.id)} onKeyDown={(e) => e.key === "Enter" && selectById(n.id)}>
-                      <span class="sev-dot" style={{ "background-color": severityColors[n.maxSeverity ?? "Info"] }} />
-                      <span class="sr-id">{n.id}</span>
-                      <span class="count">{(n.findings ?? 0) + (n.observations ?? 0)}</span>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Collapsible>
-          </Show>
-        </Show>
-        <Show when={tab() === "stats"}>
-          <StatsPanel counts={counts()} stats={stats()} groups={groups()} review={graphData()?.review} />
-          <LegendPanel groups={groups()} />
-        </Show>
-        <Show when={tab() === "help"}>
-          <ShortcutsPanel />
-        </Show>
-        <div class="status">{visibleCount() ?? counts().nodes}/{counts().nodes} nodes · {counts().edges} edges</div>
-      </aside>
-      <main class="canvas-wrap">
-        <div class="topbar">
-          <button class="tb-btn" aria-label="Toggle panels (B)" title="Toggle panels (B)" onClick={() => setSidebarOpen((v) => !v)}>
-            <span class={sidebarOpen() ? "i-mdi-menu-open" : "i-mdi-menu"} />
-          </button>
-          <span class="brand">Open Devin</span>
-          <div class="search-wrap">
-            <span class="i-mdi-magnify search-icon" />
-            <input
-              id="skill-search"
-              type="text"
-              placeholder="search skills (press /)..."
-              aria-label="Search skills"
-              title="Press / to focus, Enter to select first match, Esc to clear"
-              value={search()}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              onInput={(e) => { setSearch(e.currentTarget.value); setSearchIdx(0); }}
-              onKeyDown={(e) => {
-                const matches = searchMatches().slice(0, 8);
-                if (e.key === "ArrowDown") { e.preventDefault(); setSearchIdx((i) => Math.min(i + 1, matches.length - 1)); }
-                if (e.key === "ArrowUp") { e.preventDefault(); setSearchIdx((i) => Math.max(i - 1, 0)); }
-                if (e.key === "Enter" && matches[searchIdx()]) { selectById(matches[searchIdx()].id); e.currentTarget.blur(); }
-                if (e.key === "Escape") { setSearch(""); setSearchIdx(0); e.currentTarget.blur(); }
-              }}
-            />
-            <Show when={search().trim() && searchFocused()}>
-              <div class="search-meta">{searchMatches().length} matches</div>
-              <Show when={searchMatches().length > 0}>
-                <ul class="search-results">
-                  <For each={searchMatches().slice(0, 8)}>
-                    {(m, i) => (
-                      <li role="button" tabIndex={0} classList={{ "sr-active": i() === searchIdx() }} ref={(el) => { if (i() === searchIdx()) el.scrollIntoView({ block: "nearest" }); }} onMouseDown={(e) => { e.preventDefault(); selectById(m.id); (document.activeElement as HTMLElement)?.blur?.(); }} onKeyDown={(e) => e.key === "Enter" && selectById(m.id)}>
-                        <span class="related-dot" style={{ "background-color": (groupColors[m.group] || groupColors.default).background }} />
-                        <span class="sr-id">{m.id}</span>
-                        <span class="sr-type">{m.type}</span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </Show>
-            </Show>
-          </div>
-          <select value={prefix()} onChange={(e) => setPrefix(e.currentTarget.value)} aria-label="Filter by prefix" title="Filter by skill prefix">
-            <option value="all">all prefixes ({counts().nodes})</option>
-            <For each={groups()}>
-              {(g) => <option value={g}>{g} ({stats()?.groupCounts[g] ?? 0})</option>}
-            </For>
-          </select>
-          <select value={typeFilter()} onChange={(e) => setTypeFilter(e.currentTarget.value)} aria-label="Filter by type" title="Filter by resource type">
-            <option value="all">all types ({counts().nodes})</option>
-            <option value="skill">skills ({stats()?.typeCounts["skill"] ?? 0})</option>
-            <option value="subagent">subagents ({stats()?.typeCounts["subagent"] ?? 0})</option>
-            <option value="mcp">mcp servers ({stats()?.typeCounts["mcp"] ?? 0})</option>
-            <option value="rule">global rules ({stats()?.typeCounts["rule"] ?? 0})</option>
-          </select>
-          <div class="tb-group">
-            <button class="tb-btn" aria-label="Toggle dark/light theme (D)" title="Toggle dark/light theme (D)" onClick={() => setDark((v) => !v)}>
-              <span class={dark() ? "i-mdi-white-balance-sunny" : "i-mdi-weather-night"} />
-            </button>
-            <button class="tb-btn" classList={{ active: physics() }} aria-label="Toggle physics (P)" title="Toggle physics (P)" onClick={() => setPhysics((v) => !v)}>
-              <span class="i-mdi-atom" />
-            </button>
-            <button class="tb-btn" classList={{ active: showLabels() }} aria-label="Toggle labels (L)" title="Toggle labels (L)" onClick={() => setShowLabels((v) => !v)}>
-              <span class={showLabels() ? "i-mdi-label" : "i-mdi-label-off"} />
-            </button>
-            <button class="tb-btn" classList={{ active: hideIsolated() }} aria-label="Hide nodes with no edges (I)" title="Hide nodes with no edges (I)" onClick={() => setHideIsolated((v) => !v)}>
-              <span class="i-mdi-filter-remove" />
-            </button>
-            <button class="tb-btn" classList={{ active: issuesOnly() }} aria-label="Show only nodes with review findings/observations (H)" title="Show only nodes with review findings/observations (H)" onClick={() => setIssuesOnly((v) => !v)}>
-              <span class="i-mdi-alert-circle-outline" />
-            </button>
-            <button class="tb-btn" classList={{ active: clusterMode() }} aria-label="Group nodes into prefix clusters (C)" title="Group nodes into prefix clusters (C)" onClick={() => setClusterMode((v) => !v)}>
-              <span class="i-mdi-hexagon-multiple" />
-            </button>
-          </div>
-          <div class="tb-group">
-            <button class="tb-btn" aria-label="Zoom out" title="Zoom out" onClick={() => setZoom({ dir: "out" })}><span class="i-mdi-minus" /></button>
-            <button class="tb-btn" aria-label="Fit graph (R)" title="Fit graph (R)" onClick={doReset}><span class="i-mdi-fit-to-screen" /></button>
-            <button class="tb-btn" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom({ dir: "in" })}><span class="i-mdi-plus" /></button>
-            <button class="tb-btn" aria-label="Jump to a random skill" title="Jump to a random skill" onClick={doRandom}><span class="i-mdi-dice-5" /></button>
-            <button class="tb-btn" aria-label="Export graph as PNG" title="Export graph as PNG" onClick={exportPng}><span class="i-mdi-camera" /></button>
-          </div>
-        </div>
-        <Show when={selected()}>
-          <div class="detail-float">
-            <DetailPanel
-              selected={selected}
-              incoming={incoming()}
-              outgoing={outgoing()}
-              egoActive={ego() !== null}
-              onFocus={doFocus}
-              onClear={() => { setSelected(null); setEgo(null); }}
-              onEgo={() => setEgo(ego() === selected()!.id ? null : selected()!.id)}
-              onSelectById={selectById}
-              onOpenInVSCode={openInVSCode}
-              onToast={showToast}
-            />
-          </div>
-        </Show>
-        <Show when={loading()}>
-          <div class="skeleton" />
-          <div class="loading-message">{graphData() ? `rendering ${counts().nodes} nodes...` : "loading skills..."}</div>
-        </Show>
-        <Show when={error()}>
-          <div class="error-overlay">
-            <p>failed to load graph</p>
-            <pre>{error()}</pre>
-            <button onClick={() => window.location.reload()}>retry</button>
-          </div>
-        </Show>
-        <Show when={toast()}>
-          <div class="toast" role="status">{toast()}</div>
-        </Show>
-        <Graph
-          search={search()}
-          prefix={prefix()}
-          typeFilter={typeFilter()}
-          dark={dark()}
-          physics={physics()}
-          showLabels={showLabels()}
-          hideIsolated={hideIsolated()}
-          issuesOnly={issuesOnly()}
-          ego={ego()}
-          clusterMode={clusterMode()}
-          reset={reset()}
-          focus={focus()}
-          highlight={selected()?.id ?? null}
-          zoom={zoom}
-          onSelect={setSelected}
-          onData={setGraphData}
-          onReady={() => setLoading(false)}
-          onError={(e) => { setLoading(false); setError(String(e)); }}
-          onNetwork={(n) => (networkRef = n)}
-          onClusterSelect={onClusterSelect}
-          onDoubleClick={(node) => openInVSCode(node)}
-          onPhysicsSettled={() => setPhysics(false)}
+      <TopBar
+        search={search()}
+        onSearch={setSearch}
+        groups={groups()}
+        groupCounts={groupCounts()}
+        prefix={prefix()}
+        onPrefix={setPrefix}
+        dark={dark()}
+        onToggleDark={() => setDark((v) => !v)}
+        totalNodes={graphData()?.nodes.length ?? 0}
+        totalEdges={graphData()?.edges.length ?? 0}
+        visibleNodes={listNodes().length}
+      />
+      <div class="body">
+        <Sidebar
+          tab={tab()}
+          onTab={(t) => { setTab(t); setFitTick((v) => v + 1); }}
+          tabCounts={tabCounts()}
+          nodes={listNodes()}
+          degree={degreeMap()}
+          selectedId={selected()?.id ?? null}
+          onSelect={(n) => selectNode(n, true)}
         />
-      </main>
+        <main class="graph-area">
+          <Show when={loading()}>
+            <div class="skeleton" />
+            <div class="loading-message">
+              {graphData() ? `rendering ${graphData()!.nodes.length} nodes...` : "loading skills..."}
+            </div>
+          </Show>
+          <Show when={error()}>
+            <div class="error-overlay">
+              <p>failed to load graph</p>
+              <pre>{error()}</pre>
+              <button onClick={() => window.location.reload()}>retry</button>
+            </div>
+          </Show>
+          <Graph
+            search={search()}
+            typeFilter={tab()}
+            dark={dark()}
+            focus={focus()}
+            fitTick={fitTick()}
+            selectedId={selected()?.id ?? null}
+            onSelect={(n) => selectNode(n)}
+            onData={setGraphData}
+            onReady={() => setLoading(false)}
+            onError={(e) => { setLoading(false); setError(String(e)); }}
+          />
+        </main>
+        <Preview
+          node={selected()}
+          incoming={incoming()}
+          outgoing={outgoing()}
+          onSelectById={(id) => {
+            const n = graphData()?.nodes.find((x) => x.id === id);
+            if (n) selectNode(n, true);
+          }}
+        />
+      </div>
     </div>
   );
 }
