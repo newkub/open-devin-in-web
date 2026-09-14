@@ -16,6 +16,7 @@
     "@orpc/server": "^1.15.0",
     "@tanstack/solid-router": "^1.170.33",
     "elysia": "^1.4.30",
+    "highlight.js": "^11.12.0",
     "markdown-it": "^15.0.2",
     "solid-js": "^1.9.15",
     "vis-network": "^10.1.2",

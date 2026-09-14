@@ -1,20 +1,24 @@
 import { For, Show, type Component } from "solid-js";
-import { groupColors, typeColors, type GraphNode } from "../Graph";
+import { groupColors, typeColors, type GraphNode } from "../graph";
 
 export type SidebarTab = "all" | "skill" | "subagent" | "mcp" | "rule";
 
-const TABS: { id: SidebarTab; label: string; icon: string }[] = [
-  { id: "all", label: "all", icon: "i-mdi-apps" },
-  { id: "skill", label: "skills", icon: "i-mdi-lightning-bolt-outline" },
-  { id: "subagent", label: "agents", icon: "i-mdi-robot-outline" },
-  { id: "mcp", label: "mcp", icon: "i-mdi-server-outline" },
-  { id: "rule", label: "rules", icon: "i-mdi-scale-balance" },
+const TABS: { id: SidebarTab; label: string }[] = [
+  { id: "all", label: "all" },
+  { id: "skill", label: "skills" },
+  { id: "subagent", label: "agents" },
+  { id: "mcp", label: "mcp" },
+  { id: "rule", label: "rules" },
 ];
 
 export const Sidebar: Component<{
   tab: SidebarTab;
   onTab: (t: SidebarTab) => void;
   tabCounts: Record<SidebarTab, number>;
+  groups: string[];
+  groupCounts: Record<string, number>;
+  prefix: string;
+  onPrefix: (v: string) => void;
   nodes: GraphNode[];
   degree: Map<string, number>;
   selectedId: string | null;
@@ -31,13 +35,26 @@ export const Sidebar: Component<{
             onClick={() => props.onTab(t.id)}
             title={`${t.label} (${props.tabCounts[t.id] ?? 0})`}
           >
-            <span class={t.icon} />
             <span class="tab-label">{t.label}</span>
-            <span class="tab-count">{props.tabCounts[t.id] ?? 0}</span>
           </button>
         )}
       </For>
     </nav>
+    <Show when={props.tab === "skill"}>
+      <div class="side-filter">
+        <select
+          value={props.prefix}
+          onChange={(e) => props.onPrefix(e.currentTarget.value)}
+          aria-label="Filter by prefix"
+          title="Filter by skill prefix"
+        >
+          <option value="all">all prefixes</option>
+          <For each={props.groups}>
+            {(g) => <option value={g}>{g} ({props.groupCounts[g] ?? 0})</option>}
+          </For>
+        </select>
+      </div>
+    </Show>
     <ul class="node-list" role="listbox" aria-label="Nodes">
       <For each={props.nodes}>
         {(n) => (

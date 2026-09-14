@@ -39,6 +39,7 @@ type NodeIssue = { severity: string; category: string; finding: string; line?: n
 type GraphNode = {
   id: string; label: string; title: string; group: string; type: NodeType; dir: string; file?: string;
   findings?: number; observations?: number; maxSeverity?: string; issues?: NodeIssue[];
+  meta?: Record<string, unknown>;
 };
 type GraphEdge = { from: string; to: string; };
 type ReviewMeta = { score: number; grade: string; totalSkills: number; totalFindings: number; totalObservations: number; skillsWithIssues: number };
@@ -159,9 +160,24 @@ async function scanMcpServers(): Promise<ScanResult> {
   try {
     const config = await file.json();
     const servers = config.mcpServers ?? config.servers ?? {};
+    const maskSecrets = (obj: unknown) =>
+      Object.fromEntries(Object.entries((obj ?? {}) as Record<string, unknown>).map(([k]) => [k, "•••"]));
     for (const [name, cfg] of Object.entries(servers)) {
-      const desc = (cfg as any)?.description ?? `MCP server: ${name}`;
-      nodes.push({ id: `mcp:${name}`, label: name, title: desc, group: "mcp", type: "mcp", dir: name, file: MCP_CONFIG });
+      const c = (cfg ?? {}) as Record<string, unknown>;
+      const desc = (c.description as string) ?? `MCP server: ${name}`;
+      const url = c.url ?? c.serverUrl;
+      const meta: Record<string, unknown> = {
+        transport: url ? "http" : c.command ? "stdio" : (c.type as string) ?? "unknown",
+        command: c.command,
+        args: c.args,
+        url,
+        registry: c.registry,
+        disabled: c.disabled,
+        env: maskSecrets(c.env),
+        headers: maskSecrets(c.headers),
+        tools: c.tools,
+      };
+      nodes.push({ id: `mcp:${name}`, label: name, title: desc, group: "mcp", type: "mcp", dir: name, file: MCP_CONFIG, meta });
     }
   } catch { }
 

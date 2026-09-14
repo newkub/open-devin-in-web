@@ -1,8 +1,9 @@
-/* topbar */
+/* topbar — search centered */
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 480px) 1fr;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -21,9 +22,8 @@
 
 .search-wrap {
   position: relative;
-  flex: 1;
-  max-width: 420px;
-  min-width: 140px;
+  justify-self: center;
+  width: 100%;
 }
 
 .search-wrap input {
@@ -40,10 +40,14 @@
   z-index: 1;
 }
 
-.topbar select { max-width: 190px; }
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
 .counts {
-  margin-left: auto;
   font-size: 0.8rem;
   color: var(--muted);
   white-space: nowrap;
@@ -70,6 +74,8 @@
 
 .tabs button {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -82,6 +88,12 @@
   font-size: 0.75rem;
 }
 
+.tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tabs button:hover { color: var(--text); background: var(--input); }
 
 .tabs button.active {
@@ -92,6 +104,18 @@
 .tab-count {
   font-size: 0.65rem;
   opacity: 0.8;
+}
+
+.side-filter {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.side-filter select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.8rem;
 }
 
 .node-list {
@@ -165,25 +189,10 @@
   justify-content: center;
 }
 
-/* graph */
-.graph-area {
+/* loading / error states */
+.app-loading {
+  position: relative;
   flex: 1;
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-}
-
-.graph-wrap {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.graph-canvas {
-  width: 100%;
-  height: 100%;
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  background-size: 28px 28px;
 }
 
 .skeleton {
@@ -192,7 +201,6 @@
   background: linear-gradient(90deg, var(--panel) 0%, var(--border) 50%, var(--panel) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  z-index: 10;
 }
 
 @keyframes shimmer {
@@ -210,21 +218,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 11;
   color: var(--muted);
   font-size: 0.95rem;
   pointer-events: none;
 }
 
 .error-overlay {
-  position: absolute;
-  inset: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 12;
-  background: var(--bg);
   padding: 24px;
   text-align: center;
 }
@@ -248,54 +252,16 @@
 
 .error-overlay button:hover { background: var(--accent); color: #fff; }
 
-.empty-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.85);
-  color: var(--muted);
-  font-size: 1.1rem;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.light .empty-overlay { background: rgba(248, 250, 252, 0.85); }
-
-/* vis tooltip */
-.vis-tooltip {
-  background: var(--panel) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
-  padding: 10px 12px !important;
-  font-family: inherit !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
-  max-width: 320px;
-  white-space: normal !important;
-}
-
-.node-tip .tip-head { font-weight: 600; margin-bottom: 2px; }
-.node-tip .tip-meta {
-  font-size: 0.75rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 4px;
-}
-.node-tip .tip-desc { margin: 0; font-size: 0.85rem; line-height: 1.4; }
-
 /* responsive */
-@media (max-width: 900px) {
-  .preview { width: 320px; }
+@media (max-width: 1100px) {
+  .flow-panel { width: 300px; }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .body { flex-direction: column; }
-  .side { width: 100%; max-height: 40%; border-right: none; border-bottom: 1px solid var(--border); }
-  .preview { width: 100%; max-height: 45%; border-left: none; border-top: 1px solid var(--border); }
-  .topbar { flex-wrap: wrap; row-gap: 6px; }
+  .side { width: 100%; max-height: 35%; border-right: none; border-bottom: 1px solid var(--border); }
+  .flow-panel { width: 100%; max-height: 45%; border-left: none; border-top: 1px solid var(--border); }
+  .flow-section { max-height: 140px; }
+  .topbar { grid-template-columns: auto 1fr auto; }
   .brand { display: none; }
-  .counts { margin-left: 0; width: 100%; order: 10; }
 }

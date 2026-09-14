@@ -1,8 +1,10 @@
 import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
-import { Graph, type GraphData, type GraphNode } from "../Graph";
+import { orpc } from "../orpc/client";
+import type { GraphData, GraphNode } from "../graph";
 import { TopBar } from "../components/TopBar";
 import { Sidebar, type SidebarTab } from "../components/Sidebar";
-import { Preview } from "../components/Preview";
+import { Content } from "../components/Content";
+import { FlowPanel } from "../components/FlowPanel";
 
 const persisted = <T,>(key: string, init: T) => {
   const full = `open-devin-in-web-${key}`;
@@ -24,12 +26,20 @@ export function GraphPage() {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [graphData, setGraphData] = createSignal<GraphData | null>(null);
-  const [focus, setFocus] = createSignal<string | null>(null);
-  const [fitTick, setFitTick] = createSignal(0);
 
   const [dark, setDark] = persisted("theme", true);
   const [prefix, setPrefix] = persisted("prefix", "all");
   const [tab, setTab] = persisted<SidebarTab>("tab", "all");
+
+  onMount(async () => {
+    try {
+      setGraphData(await orpc.skillsGraph());
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  });
 
   const degreeMap = createMemo(() => {
     const data = graphData();
@@ -46,14 +56,14 @@ export function GraphPage() {
   const groups = createMemo(() => {
     const data = graphData();
     if (!data) return [] as string[];
-    return [...new Set(data.nodes.map((n) => n.group))].sort();
+    return [...new Set(data.nodes.filter((n) => n.type === "skill").map((n) => n.group))].sort();
   });
 
   const groupCounts = createMemo(() => {
     const data = graphData();
     const counts: Record<string, number> = {};
     if (!data) return counts;
-    for (const n of data.nodes) counts[n.group] = (counts[n.group] ?? 0) + 1;
+    for (const n of data.nodes) if (n.type === "skill") counts[n.group] = (counts[n.group] ?? 0) + 1;
     return counts;
   });
 
@@ -68,20 +78,16 @@ export function GraphPage() {
     return counts;
   });
 
-  const matchesSearch = (n: GraphNode) => {
-    const q = search().toLowerCase().trim();
-    return !q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q);
-  };
-
   const listNodes = createMemo(() => {
     const data = graphData();
     if (!data) return [] as GraphNode[];
+    const q = search().toLowerCase().trim();
     const t = tab();
     const p = prefix();
     const deg = degreeMap();
     return data.nodes
       .filter((n) =>
-        matchesSearch(n) &&
+        (!q || n.id.toLowerCase().includes(q) || n.title.toLowerCase().includes(q)) &&
         (t === "all" || n.type === t) &&
         (p === "all" || n.group === p || n.type !== "skill")
       )
@@ -104,14 +110,14 @@ export function GraphPage() {
     return related(graphData()!.edges.filter((e) => e.from === selected()!.id).map((e) => e.to));
   });
 
-  const selectNode = (n: GraphNode | null, shouldFocus = false) => {
-    setSelected(n);
-    if (n && shouldFocus) setFocus(n.id);
+  const selectById = (id: string) => {
+    const n = graphData()?.nodes.find((x) => x.id === id);
+    if (n) setSelected(n);
   };
 
   const handler = (e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
-    if (e.key === "Escape") { setSelected(null); setFocus(null); }
+    if (e.key === "Escape") setSelected(null);
     if (e.key === "d" || e.key === "D") setDark((v) => !v);
     if (e.key === "/" || e.key === "s" || e.key === "S") {
       (document.getElementById("skill-search") as HTMLInputElement | null)?.focus();
@@ -126,10 +132,6 @@ export function GraphPage() {
       <TopBar
         search={search()}
         onSearch={setSearch}
-        groups={groups()}
-        groupCounts={groupCounts()}
-        prefix={prefix()}
-        onPrefix={setPrefix}
         dark={dark()}
         onToggleDark={() => setDark((v) => !v)}
         totalNodes={graphData()?.nodes.length ?? 0}
@@ -137,51 +139,41 @@ export function GraphPage() {
         visibleNodes={listNodes().length}
       />
       <div class="body">
-        <Sidebar
-          tab={tab()}
-          onTab={(t) => { setTab(t); setFitTick((v) => v + 1); }}
-          tabCounts={tabCounts()}
-          nodes={listNodes()}
-          degree={degreeMap()}
-          selectedId={selected()?.id ?? null}
-          onSelect={(n) => selectNode(n, true)}
-        />
-        <main class="graph-area">
-          <Show when={loading()}>
-            <div class="skeleton" />
-            <div class="loading-message">
-              {graphData() ? `rendering ${graphData()!.nodes.length} nodes...` : "loading skills..."}
-            </div>
-          </Show>
-          <Show when={error()}>
-            <div class="error-overlay">
-              <p>failed to load graph</p>
-              <pre>{error()}</pre>
-              <button onClick={() => window.location.reload()}>retry</button>
-            </div>
-          </Show>
-          <Graph
-            search={search()}
-            typeFilter={tab()}
-            dark={dark()}
-            focus={focus()}
-            fitTick={fitTick()}
+        <Show when={loading()}>
+          <div class="app-loading"><div class="skeleton" /><div class="loading-message">loading resources...</div></div>
+        </Show>
+        <Show when={error()}>
+          <div class="error-overlay">
+            <p>failed to load resources</p>
+            <pre>{error()}</pre>
+            <button onClick={() => window.location.reload()}>retry</button>
+          </div>
+        </Show>
+        <Show when={!loading() && !error()}>
+          <Sidebar
+            tab={tab()}
+            onTab={setTab}
+            tabCounts={tabCounts()}
+            groups={groups()}
+            groupCounts={groupCounts()}
+            prefix={prefix()}
+            onPrefix={setPrefix}
+            nodes={listNodes()}
+            degree={degreeMap()}
             selectedId={selected()?.id ?? null}
-            onSelect={(n) => selectNode(n)}
-            onData={setGraphData}
-            onReady={() => setLoading(false)}
-            onError={(e) => { setLoading(false); setError(String(e)); }}
+            onSelect={setSelected}
           />
-        </main>
-        <Preview
-          node={selected()}
-          incoming={incoming()}
-          outgoing={outgoing()}
-          onSelectById={(id) => {
-            const n = graphData()?.nodes.find((x) => x.id === id);
-            if (n) selectNode(n, true);
-          }}
-        />
+          <Content node={selected()} typeCounts={tabCounts()} />
+          <FlowPanel
+            node={selected()}
+            incoming={incoming()}
+            outgoing={outgoing()}
+            listNodes={listNodes()}
+            edges={graphData()?.edges ?? []}
+            dark={dark()}
+            onSelectById={selectById}
+          />
+        </Show>
       </div>
     </div>
   );
