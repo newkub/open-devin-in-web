@@ -83,7 +83,7 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 2. รัน `bun run server` เพื่อ start Elysia + oRPC server บน `http://localhost:3000` (route `/rpc*`, procedure `skillsGraph`)
 3. รัน `bun run dev` เพื่อ start Vite dev server บน `http://localhost:5173` (proxy `/rpc` → 3000 ตาม `vite.config.ts`)
 4. สำหรับ production: `bun run build` แล้ว `bun run preview`
-5. เปิด `http://localhost:5173` ด้วย `/open web`
+5. เปิด `http://localhost:5173` ด้วย `/open-web`
 
 ### 6. Add Drag/Select Interaction
 
@@ -98,9 +98,9 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 
 > Goal: แสดงผลและ finalize
 
-1. ทำ `/open web` เพื่อเปิด graph ใน browser
+1. ทำ `/open-web` เพื่อเปิด graph ใน browser
 2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
-3. ถ้าต้องการดู relations ในรูปตาราง → ทำ `/list-devin global-skills`
+3. ถ้าต้องการดู relations ในรูปตาราง → ทำ `/list-devin-global-skills`
 4. ถ้าต้องการ verify บน local ก่อน push → ทำ `/ship`
 5. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship`
 6. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
