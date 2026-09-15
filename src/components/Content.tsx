@@ -84,6 +84,7 @@ export const Content: Component<{
   const [fields, setFields] = createSignal<{ key: string; values: string[] }[]>([]);
   const [path, setPath] = createSignal("");
   const [state, setState] = createSignal<"idle" | "loading" | "error">("idle");
+  const [errMsg, setErrMsg] = createSignal("");
 
   createEffect(() => {
     const n = props.node;
@@ -116,7 +117,10 @@ export const Content: Component<{
         setState("idle");
       } catch (err) {
         console.error("content render failed", err);
-        if (props.node?.id === nodeId) setState("error");
+        if (props.node?.id === nodeId) {
+          setErrMsg(err instanceof Error ? err.message : String(err));
+          setState("error");
+        }
       }
     })();
   });
@@ -218,6 +222,9 @@ export const Content: Component<{
                 </Show>
                 <Show when={state() === "error"}>
                   <p class="preview-status">no source available</p>
+                  <Show when={errMsg()}>
+                    <pre class="preview-error">{errMsg()}</pre>
+                  </Show>
                 </Show>
                 {/* content is local user files; markdown-exit html:false escapes raw HTML */}
                 <div class="md" innerHTML={html()} />
