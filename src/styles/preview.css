@@ -161,6 +161,38 @@
   max-width: 640px;
 }
 
+/* frontmatter card */
+.fm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.fm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fm-key {
+  width: 96px;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding-top: 3px;
+}
+
+.fm-row .chip { font-size: 0.72rem; }
+
 .mcp-row {
   display: flex;
   align-items: flex-start;
@@ -213,22 +245,35 @@
   padding: 1px 5px;
 }
 
-.md pre.hljs,
-.md pre {
-  background: #0d1117;
+/* shiki dual-theme: dark default, github-light under .light */
+.md pre,
+.md pre.shiki {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
   overflow-x: auto;
+  background-color: var(--shiki-dark-bg, #0d1117) !important;
 }
 
-.md pre code,
-.md pre.hljs code {
+.light .md pre,
+.light .md pre.shiki {
+  background-color: var(--shiki-light-bg, #f6f8fa) !important;
+}
+
+.md pre code {
   background: none;
   border: none;
   padding: 0;
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+.md pre.shiki span {
+  color: var(--shiki-dark);
+}
+
+.light .md pre.shiki span {
+  color: var(--shiki-light);
 }
 
 .md ul, .md ol { padding-left: 1.4em; margin: 0.5em 0; }

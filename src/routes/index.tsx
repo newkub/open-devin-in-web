@@ -5,6 +5,7 @@ import { TopBar } from "../components/TopBar";
 import { Sidebar, type SidebarTab } from "../components/Sidebar";
 import { Content } from "../components/Content";
 import { FlowPanel } from "../components/FlowPanel";
+import type { Heading } from "../markdown";
 
 const persisted = <T,>(key: string, init: T) => {
   const full = `open-devin-in-web-${key}`;
@@ -30,6 +31,9 @@ export function GraphPage() {
   const [dark, setDark] = persisted("theme", true);
   const [prefix, setPrefix] = persisted("prefix", "all");
   const [tab, setTab] = persisted<SidebarTab>("tab", "all");
+  const [compact, setCompact] = persisted("compact", false);
+  const [showGraph, setShowGraph] = persisted("mini-graph", true);
+  const [headings, setHeadings] = createSignal<Heading[]>([]);
 
   onMount(async () => {
     try {
@@ -111,7 +115,7 @@ export function GraphPage() {
   });
 
   const selectById = (id: string) => {
-    const n = graphData()?.nodes.find((x) => x.id === id);
+    const n = graphData()?.nodes.find((x) => x.id === id || x.label === id || x.id === `skill:${id}`);
     if (n) setSelected(n);
   };
 
@@ -128,12 +132,16 @@ export function GraphPage() {
   onCleanup(() => window.removeEventListener("keydown", handler));
 
   return (
-    <div class="app" classList={{ light: !dark() }}>
+    <div class="app" classList={{ light: !dark(), compact: compact() }}>
       <TopBar
         search={search()}
         onSearch={setSearch}
         dark={dark()}
         onToggleDark={() => setDark((v) => !v)}
+        compact={compact()}
+        onToggleCompact={() => setCompact((v) => !v)}
+        showGraph={showGraph()}
+        onToggleGraph={() => setShowGraph((v) => !v)}
         totalNodes={graphData()?.nodes.length ?? 0}
         totalEdges={graphData()?.edges.length ?? 0}
         visibleNodes={listNodes().length}
@@ -163,14 +171,21 @@ export function GraphPage() {
             selectedId={selected()?.id ?? null}
             onSelect={setSelected}
           />
-          <Content node={selected()} typeCounts={tabCounts()} />
+          <Content
+            node={selected()}
+            typeCounts={tabCounts()}
+            onHeadings={setHeadings}
+            onSelectById={selectById}
+          />
           <FlowPanel
             node={selected()}
             incoming={incoming()}
             outgoing={outgoing()}
             listNodes={listNodes()}
             edges={graphData()?.edges ?? []}
+            headings={headings()}
             dark={dark()}
+            showGraph={showGraph()}
             onSelectById={selectById}
           />
         </Show>

@@ -34,15 +34,45 @@ test("click skill renders markdown preview", async ({ page }) => {
   await expect(page.locator(".content-body .md")).toBeVisible({ timeout: 15_000 });
 });
 
-test("markdown code blocks get syntax highlighting", async ({ page }) => {
+test("markdown code blocks get shiki syntax highlighting", async ({ page }) => {
   await appReady(page);
   await page.keyboard.press("/");
   await page.keyboard.type("use-scripts");
   await page.locator(".node-list li").first().click();
-  await expect(page.locator(".content-body .md")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator(".content-body .md pre.hljs").first()).toBeVisible();
-  const colored = await page.locator('.content-body .md pre.hljs code span[class*="hljs-"]').count();
+  await expect(page.locator(".content-body .md")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".content-body .md pre.shiki").first()).toBeVisible({ timeout: 15_000 });
+  const colored = await page.locator(".content-body .md pre.shiki code span[style]").count();
   expect(colored).toBeGreaterThan(0);
+});
+
+test("frontmatter renders as styled card with related chips", async ({ page }) => {
+  await appReady(page);
+  await page.locator(".node-list li").first().click();
+  await expect(page.locator(".content-body .md")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".fm-card")).toBeVisible();
+  const keys = await page.locator(".fm-card .fm-key").allTextContents();
+  expect(keys.length).toBeGreaterThan(0);
+});
+
+test("right panel has flow and outline tabs", async ({ page }) => {
+  await appReady(page);
+  await page.locator(".node-list li").first().click();
+  await expect(page.locator(".content-body .md")).toBeVisible({ timeout: 20_000 });
+  await page.locator(".ptabs button", { hasText: "outline" }).click();
+  await expect(page.locator(".outline-item").first()).toBeVisible();
+  await page.locator(".ptabs button", { hasText: "flow" }).click();
+  await expect(page.locator(".flow-center")).toBeVisible();
+});
+
+test("options dropdown toggles theme, compact and mini graph", async ({ page }) => {
+  await appReady(page);
+  await page.locator('.tb-btn[aria-label="View options"]').click();
+  await expect(page.locator(".dropdown")).toBeVisible();
+  await page.locator(".dd-item", { hasText: "compact list" }).click();
+  await expect(page.locator(".app")).toHaveClass(/compact/);
+  await page.locator('.tb-btn[aria-label="View options"]').click();
+  await page.locator(".dd-item", { hasText: "mini graph" }).click();
+  await expect(page.locator(".mini-graph")).toBeHidden();
 });
 
 test("click mcp node shows structured config card", async ({ page }) => {

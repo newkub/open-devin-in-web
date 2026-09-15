@@ -1,38 +1,9 @@
 import { createEffect, createSignal, For, Show, type Component } from "solid-js";
-import MarkdownIt from "markdown-it";
-import hljs from "highlight.js/lib/common";
-import "highlight.js/styles/github-dark.css";
+import "@shikijs/twoslash/style-rich.css";
 import { orpc } from "../orpc/client";
 import type { NodeSource } from "../orpc/router";
 import { groupColors, typeColors, type GraphNode } from "../graph";
-
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-const md = new MarkdownIt({
-  html: false,
-  linkify: true,
-  highlight(str, lang): string {
-    let value: string;
-    if (lang && hljs.getLanguage(lang)) {
-      try {
-        value = hljs.highlight(str, { language: lang }).value;
-      } catch {
-        value = escapeHtml(str);
-      }
-    } else {
-      value = escapeHtml(str);
-    }
-    return `<pre class="hljs"><code>${value}</code></pre>`;
-  },
-});
-
-const stripFrontmatter = (text: string) => text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
-
-const renderSource = (s: NodeSource) => {
-  if (s.path.endsWith(".json")) return md.render(`\`\`\`json\n${s.content}\n\`\`\``);
-  return md.render(stripFrontmatter(s.content));
-};
+import { extractHeadings, getMarkdown, parseDoc, type Heading } from "../markdown";
 
 const McpCard: Component<{ node: GraphNode }> = (props) => {
   const m = () => (props.node.meta ?? {}) as Record<string, unknown>;
@@ -43,6 +14,9 @@ const McpCard: Component<{ node: GraphNode }> = (props) => {
       <div class="mcp-row">
         <span class="mcp-label">transport</span>
         <span class="badge badge-accent">{String(m().transport ?? "stdio")}</span>
+        <Show when={m().disabled}>
+          <span class="badge">disabled</span>
+        </Show>
       </div>
       <Show when={m().command}>
         <div class="mcp-row">
@@ -70,18 +44,6 @@ const McpCard: Component<{ node: GraphNode }> = (props) => {
           <code class="mcp-cmd">{String(m().registry)}</code>
         </div>
       </Show>
-      <Show when={m().disabled}>
-        <div class="mcp-row">
-          <span class="mcp-label">status</span>
-          <span class="badge">disabled</span>
-        </div>
-      </Show>
-      <Show when={m().tools}>
-        <div class="mcp-row">
-          <span class="mcp-label">tools</span>
-          <code class="mcp-cmd">{String(m().tools)}</code>
-        </div>
-      </Show>
       <Show when={entries(m().env).length > 0}>
         <div class="mcp-row">
           <span class="mcp-label">env</span>
@@ -102,6 +64,12 @@ const McpCard: Component<{ node: GraphNode }> = (props) => {
           </div>
         </div>
       </Show>
+      <Show when={m().tools}>
+        <div class="mcp-row">
+          <span class="mcp-label">tools</span>
+          <code class="mcp-cmd">{String(m().tools)}</code>
+        </div>
+      </Show>
     </div>
   );
 };
@@ -109,32 +77,56 @@ const McpCard: Component<{ node: GraphNode }> = (props) => {
 export const Content: Component<{
   node: GraphNode | null;
   typeCounts: Record<string, number>;
+  onHeadings: (h: Heading[]) => void;
+  onSelectById: (id: string) => void;
 }> = (props) => {
-  const [source, setSource] = createSignal<NodeSource | null>(null);
+  const [html, setHtml] = createSignal("");
+  const [fields, setFields] = createSignal<{ key: string; values: string[] }[]>([]);
+  const [path, setPath] = createSignal("");
   const [state, setState] = createSignal<"idle" | "loading" | "error">("idle");
 
   createEffect(() => {
     const n = props.node;
+    props.onHeadings([]);
     if (!n || n.type === "mcp") {
-      setSource(null);
-      setState(n ? "idle" : "idle");
+      setHtml("");
+      setFields([]);
+      setPath(n?.file ?? "");
+      setState("idle");
       return;
     }
     if (!n.file) {
-      setSource(null);
       setState("error");
       return;
     }
     setState("loading");
-    orpc.nodeSource({ id: n.id })
-      .then((s) => { setSource(s); setState("idle"); })
-      .catch(() => setState("error"));
+    const nodeId = n.id;
+    void (async () => {
+      try {
+        const [s, md] = await Promise.all([orpc.nodeSource({ id: nodeId }), getMarkdown()]);
+        const doc = parseDoc(s.content);
+        const out = s.path.endsWith(".json")
+          ? await md.renderAsync(`\`\`\`json\n${s.content}\n\`\`\``)
+          : await md.renderAsync(doc.body);
+        if (props.node?.id !== nodeId) return;
+        setPath(s.path);
+        setFields(doc.fields);
+        setHtml(out);
+        props.onHeadings(extractHeadings(doc.body));
+        setState("idle");
+      } catch (err) {
+        console.error("content render failed", err);
+        if (props.node?.id === nodeId) setState("error");
+      }
+    })();
   });
 
   const openInVSCode = () => {
     const file = props.node?.file;
     if (file) window.open(`vscode://file/${file.replaceAll("\\", "/")}`);
   };
+
+  const fieldLabel = (key: string) => key.replace(/-/g, " ");
 
   return (
     <main class="content" aria-label="Content">
@@ -183,11 +175,8 @@ export const Content: Component<{
               <Show when={n().title}>
                 <p class="preview-desc">{n().title}</p>
               </Show>
-              <Show when={source()}>
-                <p class="preview-path" title={source()!.path}>{source()!.path}</p>
-              </Show>
-              <Show when={n().file && !source()}>
-                <p class="preview-path">{n().file}</p>
+              <Show when={path()}>
+                <p class="preview-path" title={path()}>{path()}</p>
               </Show>
             </div>
             <div class="content-body">
@@ -195,16 +184,43 @@ export const Content: Component<{
                 <McpCard node={n()} />
               </Show>
               <Show when={n().type !== "mcp"}>
+                <Show when={fields().length > 0}>
+                  <div class="fm-card">
+                    <For each={fields().filter((f) => f.key !== "name" && f.key !== "description")}>
+                      {(f) => (
+                        <div class="fm-row">
+                          <span class="fm-key">{fieldLabel(f.key)}</span>
+                          <Show
+                            when={f.key === "related"}
+                            fallback={
+                              <div class="rel-chips">
+                                <For each={f.values}>
+                                  {(v) => <code class="chip chip-code">{v}</code>}
+                                </For>
+                              </div>
+                            }
+                          >
+                            <div class="rel-chips">
+                              <For each={f.values}>
+                                {(v) => (
+                                  <button class="chip" onClick={() => props.onSelectById(v)}>{v}</button>
+                                )}
+                              </For>
+                            </div>
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
                 <Show when={state() === "loading"}>
                   <p class="preview-status">loading…</p>
                 </Show>
                 <Show when={state() === "error"}>
                   <p class="preview-status">no source available</p>
                 </Show>
-                <Show when={source()}>
-                  {/* content is local user files; markdown-it html:false escapes raw HTML */}
-                  <div class="md" innerHTML={renderSource(source()!)} />
-                </Show>
+                {/* content is local user files; markdown-exit html:false escapes raw HTML */}
+                <div class="md" innerHTML={html()} />
               </Show>
             </div>
           </>

@@ -1,10 +1,10 @@
 /* topbar — search centered */
 .topbar {
   display: grid;
-  grid-template-columns: 1fr minmax(200px, 480px) 1fr;
+  grid-template-columns: 1fr minmax(160px, 340px) 1fr;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -28,13 +28,16 @@
 
 .search-wrap input {
   width: 100%;
-  padding-left: 30px;
+  padding: 5px 12px 5px 28px;
+  border-radius: 999px;
+  font-size: 0.83rem;
 }
 
 .search-icon {
   position: absolute;
-  left: 9px;
-  top: 9px;
+  left: 10px;
+  top: 7px;
+  font-size: 0.85rem;
   color: var(--muted);
   pointer-events: none;
   z-index: 1;
@@ -48,10 +51,43 @@
 }
 
 .counts {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* options dropdown */
+.menu-wrap { position: relative; }
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 160px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.dd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.dd-item:hover { background: var(--input); }
 
 /* sidebar */
 .side {
@@ -188,6 +224,15 @@
   cursor: default !important;
   justify-content: center;
 }
+
+/* compact density */
+.compact .node-list li {
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  gap: 6px;
+}
+
+.compact .node-deg { font-size: 0.65rem; }
 
 /* loading / error states */
 .app-loading {

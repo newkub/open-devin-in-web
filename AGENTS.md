@@ -59,11 +59,12 @@ Web graph visualization ของ Devin global skills, subagents, MCP servers �
 - Frontend: SolidJS + TanStack Router + UnoCSS
 - Backend: Elysia + oRPC (serves graph data from skills directory)
 - Graph: vis-network (npm bundle, mini graph in right panel)
-- Markdown preview: markdown-it (`html: false`) + highlight.js syntax highlighting
+- Markdown preview: markdown-exit (`html: false`) + shiki (`@shikijs/markdown-exit`, async render, dual light/dark themes, twoslash for `ts twoslash` blocks)
 - Build: Vite
 - `src/App.tsx` — Main app component
 - `src/graph.ts` — Shared node types and color maps
-- `src/components/` — TopBar (centered search), Sidebar (type tabs + prefix dropdown + node list), Content (markdown/MCP card), FlowPanel (relations), MiniGraph
+- `src/markdown.ts` — markdown-exit instance, frontmatter parser, heading extraction
+- `src/components/` — TopBar (centered search + options dropdown), Sidebar (type tabs + prefix dropdown + node list), Content (markdown/MCP card), FlowPanel (flow + outline tabs), MiniGraph
 - `src/orpc/` — oRPC client and router (`skillsGraph`, `nodeSource`)
 - `src/routes/` — File-system routes
 - `src/styles/` — CSS stylesheets (base, layout, flow, preview)
