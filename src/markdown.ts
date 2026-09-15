@@ -47,6 +47,13 @@ export function getMarkdown(): Promise<MarkdownExit> {
   return mdPromise;
 }
 
+export function wrapCodeBlocks(html: string): string {
+  return html.replace(
+    /<pre class="([^"]*shiki[^"]*)"([^>]*)>/g,
+    '<div class="code-block"><button class="code-copy" type="button" aria-label="Copy code" title="Copy code"><span class="i-mdi-content-copy"></span></button><pre class="$1"$2>',
+  ).replace(/<\/pre>/g, "</pre></div>");
+}
+
 export function parseDoc(text: string): ParsedDoc {
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   if (!match) return { fields: [], body: text };

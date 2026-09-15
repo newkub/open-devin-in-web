@@ -3,7 +3,7 @@ import "@shikijs/twoslash/style-rich.css";
 import { orpc } from "../orpc/client";
 import type { NodeSource } from "../orpc/router";
 import { groupColors, typeColors, type GraphNode } from "../graph";
-import { extractHeadings, getMarkdown, parseDoc, type Heading } from "../markdown";
+import { extractHeadings, getMarkdown, parseDoc, wrapCodeBlocks, type Heading } from "../markdown";
 
 const McpCard: Component<{ node: GraphNode }> = (props) => {
   const m = () => (props.node.meta ?? {}) as Record<string, unknown>;
@@ -112,7 +112,7 @@ export const Content: Component<{
         if (props.node?.id !== nodeId) return;
         setPath(s.path);
         setFields(doc.fields);
-        setHtml(out);
+        setHtml(wrapCodeBlocks(out));
         props.onHeadings(extractHeadings(doc.body));
         setState("idle");
       } catch (err) {
@@ -131,6 +131,21 @@ export const Content: Component<{
   };
 
   const fieldLabel = (key: string) => key.replace(/-/g, " ");
+
+  const onMdClick = (e: MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".code-copy");
+    if (!btn) return;
+    const code = (btn.parentElement?.querySelector("pre code") as HTMLElement | null)?.innerText ?? "";
+    const icon = btn.querySelector("span");
+    void navigator.clipboard.writeText(code).then(() => {
+      btn.classList.add("copied");
+      if (icon) icon.className = "i-mdi-check";
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        if (icon) icon.className = "i-mdi-content-copy";
+      }, 1500);
+    }).catch((err) => console.warn("copy failed", err));
+  };
 
   return (
     <main class="content" aria-label="Content">
@@ -227,7 +242,7 @@ export const Content: Component<{
                   </Show>
                 </Show>
                 {/* content is local user files; markdown-exit html:false escapes raw HTML */}
-                <div class="md" innerHTML={html()} />
+                <div class="md" innerHTML={html()} onClick={onMdClick} />
               </Show>
             </div>
           </>
