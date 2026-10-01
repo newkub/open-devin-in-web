@@ -16,11 +16,10 @@ triggers:
 related:
   - visualize-in-web
   - update-devin-global-skills
-  - check-repo-hygiene
   - alternative
   - follow-create-web
-  - review-frontend
-  - ship
+  - deep-review
+  - ship-to-dev-branch
   - list-devin
 ---
 
@@ -51,7 +50,7 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 
 > Goal: รู้ cycles และกลุ่มของ resources
 
-1. ทำ `/check-repo-hygiene circular-dependencies` เพื่อหา cycles ใน `related`
+1. ทำ `/follow-tool-madge` เพื่อหา cycles ใน `related`
 2. จัดกลุ่ม nodes ตามประเภท: `skill` (prefix: `follow-`, `run-`, `check-`, `report-`, `idea-`), `subagent`, `mcp`, `rule`
 3. ระบุ isolated nodes เพื่อตรวจสอบว่า `related` ค้างหรือไม่
 
@@ -69,7 +68,7 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 
 > Goal: ออกแบบ graph ให้เข้าใจง่าย
 
-1. ทำ `/review-frontend` เพื่อเลือก pattern: dark mode, color coding, search, filter, tooltips
+1. ทำ `/deep-review` เพื่อเลือก pattern: dark mode, color coding, search, filter, tooltips
 2. กำหนดสีตามประเภท: skill (prefix), subagent, mcp, rule
 3. ใช้ force-directed layout สำหรับกลุ่มใหญ่
 4. เพิ่ม side panel แสดง `description` และ `related` ของ node ที่เลือก
@@ -101,8 +100,8 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 1. ทำ `/open-web` เพื่อเปิด graph ใน browser
 2. รายงานจำนวน nodes, edges, cycles, และ isolated nodes
 3. ถ้าต้องการดู relations ในรูปตาราง → ทำ `/list-devin-global-skills`
-4. ถ้าต้องการ verify บน local ก่อน push → ทำ `/ship`
-5. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship`
+4. ถ้าต้องการ verify บน local ก่อน push → ทำ `/ship-to-dev-branch`
+5. ถ้าต้องการ ship project จริงหลังเสร็จ → ทำ `/ship-to-dev-branch`
 6. ทำ `/suggest-next-action` เพื่อแนะนำ step ถัดไป
 
 ## Rules
@@ -118,7 +117,7 @@ Project นี้มี oRPC server อยู่แล้ว (`server.ts` + `src
 
 - ใช้สีแยกตามประเภท: skill (prefix), subagent, mcp, rule
 - แสดง edges ทิศทางจาก `related` ชัดเจน
-- รองรับ zoom, pan, search, filter ตาม `/review-frontend`
+- รองรับ zoom, pan, search, filter ตาม `/deep-review`
 - แสดง tooltip ด้วย `description`
 - ไม่แสดง cluster ซ้อนกันจนอ่านไม่ไหว
 
